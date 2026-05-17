@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Current Students</title>
+
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="./style.css?v=20260516_1514" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+
+
+        /* Specific styles for this simple list */
+
+        /* --- SCREENSHOT BUTTON --- */
+        .fab-screenshot {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none;
+            background-color: #0f172a; /* Slate 900 */
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            z-index: 9999;
+            transition: transform 0.2s ease, background-color 0.2s;
+        }
+        .fab-screenshot:hover {
+            transform: translateY(-2px);
+            background-color: #1e293b;
+        }
+        .fab-screenshot:active {
+            transform: translateY(0);
+        }
+
+
+        .active-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .active-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            /* slate-200 */
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: fade-in 0.3s ease-out;
+        }
+
+        /* Green pulsing dot for "Live" status */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #15803d;
+            /* green-700 */
+            background: #dcfce7;
+            /* green-100 */
+            padding: 4px 10px;
+            border-radius: 99px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .student-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .student-info p {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .timer-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-weight: 700;
+            font-size: 18px;
+            color: #334155;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+/* ... keep global styles ... */
+
+    /* --- COMPACT GRID --- */
+    .active-grid {
+      display: grid;
+      /* Fit more cards: reduced min-width to 280px */
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+      gap: 16px; /* Tighter gap */
+      margin-top: 20px;
+      padding: 0 16px 40px; /* Bottom padding for scroll */
+    }
+
+    .active-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px; /* Tighter corners */
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s;
+      position: relative;
+    }
+
+    .active-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      border-color: #cbd5e1;
+      z-index: 10;
+    }
+
+    /* Red border animation if overtime */
+    .active-card.is-overtime {
+        border-color: #fca5a5;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+
+    /* --- HEADER SECTION --- */
+/* --- PAGE HEADER & FILTER --- */
+    .board-header {
+        display: flex;
+        flex-wrap: wrap; /* Allows wrapping on mobile */
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 16px;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Modern Select Dropdown */
+    .filter-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-icon {
+        position: absolute;
+        left: 12px;
+        color: #64748b;
+        pointer-events: none;
+        font-size: 0.9rem;
+    }
+
+    .custom-select {
+        appearance: none;
+        background-color: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 36px 10px 36px; /* Space for icon */
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+        color: #334155;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 220px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+    }
+
+    .custom-select:hover {
+        border-color: #cbd5e1;
+    }
+
+    .custom-select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .student-main {
+        min-width: 0; /* Allow text truncate */
+        padding-right: 8px;
+    }
+
+.student-main {
+        min-width: 0; /* Allow text truncate */
+        padding-right: 90px; /* Reserve space for the floating button */
+    }
+
+    .student-main h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+    .student-main .email {
+        font-size: 0.75rem;
+        color: #64748b;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* REDESIGNED LIVE TAG (Floating Top Right) */
+    .live-tag {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: #dcfce7; 
+        color: #166534;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 4px 10px; /* Cleaner padding */
+        border-radius: 99px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06); /* Modern shadow, no border */
+        z-index: 5;
+    }
+
+    .upcoming-tag {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: #fff7ed; /* Light Orange */
+        color: #c2410c;      /* Deep Orange */
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 99px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        z-index: 5;
+    }    
+    /* Yellow dot for upcoming */
+    .upcoming-dot {
+        width: 6px;
+        height: 6px;
+        background: #f97316;
+        border-radius: 50%;
+    }
+    .pulse {
+        width: 6px;
+        height: 6px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+/* --- TIMERS SECTION --- */
+    .timers-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px; /* This creates the physical gap */
+        padding: 12px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #fff;
+    }
+
+    .timer-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 4px;
+        border-radius: 10px; /* Rounds the corners of each timer */
+        border: 1px solid transparent;
+        transition: background-color 0.2s, border-color 0.2s;
+    }
+    
+    /* Remove the old border-right since we now use a gap */
+    .timer-box:first-child {
+        border-right: none;
+    }
+
+    .timer-box .label {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+
+    .timer-box .time-val {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+    }
+
+    /* THEME: TIME USED (Neutral Gray Box) */
+    .timer-box.used {
+        background: #f8fafc; /* Very light slate */
+        border-color: #e2e8f0;
+    }
+    .timer-box.used .label { color: #64748b; }
+    .timer-box.used .time-val { color: #334155; }
+
+    /* THEME: TIME LEFT (Blue Box) */
+    .timer-box.left {
+        background: #f0f9ff; /* Very light blue */
+        border-color: #e0f2fe;
+    }
+    .timer-box.left .label { color: #0284c7; }
+    .timer-box.left .time-val { color: #0369a1; }
+
+    /* THEME: OVERTIME (Red Box) */
+    .active-card.is-overtime .timer-box.left {
+        background: #fef2f2; /* Light red */
+        border-color: #fee2e2;
+    }
+    .active-card.is-overtime .timer-box.left .label { color: #dc2626; }
+    .active-card.is-overtime .timer-box.left .time-val { color: #b91c1c; }
+
+
+    /* --- TEACHER DETAILS --- */
+    .details-container {
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px; /* Tighter gap */
+        background: #fff;
+        flex: 1; /* Pushes footer down */
+    }
+
+    /* Slim Pills */
+    .info-pill {
+        display: flex;
+        align-items: center;
+        padding: 6px 10px; /* Slim padding */
+        border-radius: 8px;
+        gap: 10px;
+        transition: background-color 0.2s;
+        min-height: 42px; /* Ensure consistency */
+    }
+
+    .info-icon {
+        width: 28px; /* Smaller icon box */
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        flex-shrink: 0;
+        font-size: 12px;
+    }
+
+    .info-content {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        justify-content: center;
+    }
+
+    .info-label {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        opacity: 0.8;
+        line-height: 1;
+        margin-bottom: 2px;
+    }
+
+    .info-val {
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.1;
+    }
+
+    /* Colors */
+    .info-pill.ttkb { background: #f0f9ff; border: 1px solid #e0f2fe; }
+    .info-pill.ttkb .info-icon { background: #fff; color: #0284c7; border: 1px solid #bae6fd; }
+    .info-pill.ttkb .info-label { color: #0369a1; }
+    .info-pill.ttkb .info-val { color: #0c4a6e; }
+
+    .info-pill.breakout { background: #f5f3ff; border: 1px solid #ede9fe; }
+    .info-pill.breakout .info-icon { background: #fff; color: #7c3aed; border: 1px solid #ddd6fe; }
+    .info-pill.breakout .info-label { color: #6d28d9; }
+    .info-pill.breakout .info-val { color: #4c1d95; }
+
+    /* --- FOOTER (Reporter) --- */
+    .card-footer {
+        padding: 8px 14px;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+        font-size: 0.7rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .card-footer i { font-size: 0.8rem; }
+    .card-footer strong { font-weight: 600; color: #64748b; }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* ROLE FILTER BUTTONS */
+    .role-btn {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .role-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.1); }
+    
+    .role-btn .icon-box {
+        width: 40px; height: 40px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+        margin-right: 14px;
+        flex-shrink: 0;
+    }
+    .role-btn .text-box { display: flex; flex-direction: column; flex: 1; }
+    .role-btn .main { font-weight: 700; font-size: 0.95rem; color: #0f172a; }
+    .role-btn .sub { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+    .role-btn .arrow { color: #cbd5e1; font-size: 14px; }
+
+    /* Theme: TTKB (Blue) */
+    .ttkb-btn { border-color: #e0f2fe; }
+    .ttkb-btn .icon-box { background: #f0f9ff; color: #0284c7; }
+    .ttkb-btn:hover { border-color: #0284c7; background: #f0f9ff; }
+
+    /* Theme: Breakout (Purple) */
+    .bo-btn { border-color: #ede9fe; }
+    .bo-btn .icon-box { background: #f5f3ff; color: #7c3aed; }
+    .bo-btn:hover { border-color: #7c3aed; background: #f5f3ff; }
+
+    /* Theme: Any (Gray) */
+    .any-btn { border-color: #f1f5f9; }
+    .any-btn .icon-box { background: #f8fafc; color: #64748b; }
+    .any-btn:hover { border-color: #94a3b8; background: #f8fafc; }
+
+    /* --- OVERLAY SPINNER --- */
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.85); /* Dark backdrop */
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: white;
+        text-align: center;
+        animation: fadeIn 0.2s ease-out;
+    }
+    
+    .spinner-box {
+        background: #fff;
+        color: #0f172a;
+        padding: 24px 32px;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .spinner-box i { font-size: 32px; color: #2563eb; }
+    .spinner-box p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: #475569; }
+    .spinner-box strong { color: #0f172a; font-weight: 700; display: block; margin-bottom: 4px; font-size: 1.1rem; }
+
+    /* --- TOAST NOTIFICATION --- */
+    .toast-container {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+    }
+
+    .toast-msg {
+        background: #10b981; /* Emerald 500 */
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+
+<body class="app-mode">
+
+    <div class="card" id="loginCard" style="display:none; margin: 50px auto;">
+        <div class="logo">Current Students</div>
+        <div class="subtitle">Đăng nhập bằng email &amp; mật khẩu của bạn</div>
+
+        <div class="field">
+            <input id="email" type="email" autocomplete="username" placeholder="Email" required />
+        </div>
+
+        <div class="field">
+            <input id="password" type="password" autocomplete="current-password" placeholder="Mật khẩu" required />
+            <button class="toggle-password" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+        </div>
+
+        <button class="btn" id="login">Đăng nhập</button>
+        <div id="message" aria-live="polite"></div>
+    </div>
+
+    <main class="board">
+<div class="board-header">
+            <div class="header-left">
+                <h1><i class="fa-solid fa-bolt" style="color:#eab308;"></i> Currently Learning</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="filter-wrapper">
+                    <i class="fa-solid fa-filter filter-icon"></i>
+                    <select id="teacherFilter" class="custom-select">
+                        <option value="ALL">All Teachers</option>
+                        </select>
+                </div>
+
+                <a href="./learntoday.html" class="btn-outline" style="text-decoration:none; font-size:14px; padding: 10px 16px; border-radius:10px; background:#fff; border:1px solid #e2e8f0; color:#334155; font-weight:600; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div id="activeList" class="active-grid">
+            <div class="tip">Loading active sessions...</div>
+        </div>
+    </main>
+
+    <script src="./currentstudents.js?v=20260516_1514"></script>
+
+<div id="roleFilterModal" class="modal-backdrop" style="display: none;">
+        <div class="modal" role="dialog" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <h2 id="roleModalTitle" style="font-size: 1.2rem;">Filter by Role</h2>
+            </div>
+            <div class="modal-body" style="padding-top: 10px;">
+                <p style="color: #64748b; margin-bottom: 20px;">Which department do you want to view?</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button onclick="applyRoleFilter('TTKB')" class="role-btn ttkb-btn">
+                        <div class="icon-box"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <div class="text-box">
+                            <span class="main">TTKB Teacher</span>
+                            <span class="sub">Main Class</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </button>
+
+                    <button onclick="applyRoleFilter('BREAKOUT')" class="role-btn bo-btn">
+                        <div class="icon-box"><i class="fa-solid fa-users-viewfinder"></i></div>
+                        <div class="text-box">
+                            <span class="main">Breakout Teacher</span>
+                            <span class="sub">Group Session</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </button>
+
+                    <button onclick="applyRoleFilter('ANY')" class="role-btn any-btn">
+                        <div class="icon-box"><i class="fa-solid fa-layer-group"></i></div>
+                        <div class="text-box">
+                            <span class="main">Show All</span>
+                            <span class="sub">TTKB & Breakout</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center; border-top: none;">
+                <button class="btn-secondary" onclick="closeRoleModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screenshotConfirmModal" class="modal-backdrop" style="display: none;">
+        <div class="modal" role="dialog" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <h2 style="font-size: 1.2rem;">Lưu ý</h2>
+            </div>
+            <div class="modal-body" style="padding-top: 10px;">
+                <p style="color: #64748b; margin-bottom: 20px;">Bạn cần lọc tên của mình trước khi chụp màn hình.</p>
+            </div>
+            <div class="modal-footer" style="justify-content: center; border-top: none; gap: 10px;">
+                <button class="btn-secondary" onclick="closeScreenshotModal()">Cancel</button>
+                <button class="btn" onclick="confirmScreenshot()" style="background: #2563eb; color: white;">Đã lọc</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="screenshotBtn" class="fab-screenshot" type="button" title="Screenshot & Copy URL">
+        <i class="fa-solid fa-camera"></i>
+    </button>
+
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner-box">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <div>
+                <strong>Taking Snapshot...</strong>
+                <p>Please do not switch tabs or resize window.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+    
+</body>
+
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Teacher Calendars</title>
+
+  <link rel="icon" type="image/png" sizes="32x32"
+    href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=20260516_1514" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- Supabase + this page’s script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
+  <script src="./teacher.js?v=20260516_1514" defer></script>
+</head>
+
+<body class="page-teacher">
+  <!-- Login card (same as main) -->
+  <div class="card" id="loginCard" style="display:none">
+    <div class="logo">New App</div>
+    <div class="subtitle">Đăng nhập bằng email &amp; mật khẩu của bạn</div>
+
+    <div class="field"><input id="email" type="email" autocomplete="username" placeholder="Email" required /></div>
+    <div class="field">
+      <input id="password" type="password" autocomplete="current-password" placeholder="Mật khẩu" required />
+      <button class="toggle-password" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+    </div>
+    <button class="btn" id="login">Đăng nhập</button>
+    <div id="message" aria-live="polite"></div>
+  </div>
+
+  <!-- Board: TEACHERS -->
+  <main id="teacherBoard" class="board hidden">
+    <div class="board-header">
+      <h1><i class="fa-solid fa-chalkboard-user"></i> Teacher Calendars</h1>
+
+      <div class="view-toggle">
+        <a href="./index.html" class="btn-outline" title="Student calendars">
+          <i class="fa-solid fa-user-graduate"></i> Students
+        </a>
+
+        <button id="tViewByTeacher" class="toggle active" data-view="teacher">
+          <i class="fa-solid fa-user-tie"></i> By teacher
+        </button>
+        <button id="tViewByDay" class="toggle" data-view="day">
+          <i class="fa-solid fa-calendar-day"></i> By day
+        </button>
+        <button id="tRefreshBoard" class="icon-btn" title="Refresh">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="tBoardContent"></div>
+  </main>
+
+  <!-- Optional: allow editing from this page too -->
+  <button class="calendar-fab teacher-fab" id="openTeacherCalBtn" type="button" aria-label="Open teacher calendar setup"
+    title="Edit teachers' calendar">
+    <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+  </button>
+
+  <div class="modal-backdrop" id="teacherCalendarModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherCalTitle">
+      <div class="modal-header">
+        <h2 id="teacherCalTitle"><i class="fa-solid fa-chalkboard-user"></i> Teacher Calendar</h2>
+        <button class="modal-close" id="teacherCalCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid">
+          <div class="form-group">
+            <label for="teacherNameInput">Teacher</label>
+            <div class="autocomplete">
+              <input id="teacherNameInput" type="text" placeholder="Type 4+ letters to search…" autocomplete="off" />
+              <div id="teacherNameSuggestions" class="autocomplete-list hidden"></div>
+            </div>
+            <small class="tip">Suggestions from: user_roles.email</small>
+          </div>
+        </div>
+
+        <div class="section-title">Free time ranges</div>
+        <div id="teacherScheduleRows"></div>
+        <button class="btn-outline" id="addTeacherRowBtn" type="button">
+          <i class="fa-solid fa-plus"></i> Add day & time range
+        </button>
+
+        <div class="tip">Example: Mon 08:00–12:00 & 18:00–21:00</div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="teacherCalCancelBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="teacherCalSaveBtn" type="button">
+          <i class="fa-solid fa-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back to main page (bottom-right) -->
+  <a href="./index.html" class="back-home-chip" aria-label="Back to main page" title="Back to Student Schedules">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>
+    <span>Back to main</span>
+  </a>
+
+  <a href="./teacherplanner.html" class="teacher-calendar-chip" title="Open Planner" aria-label="Open Planner"
+    target="_blank" rel="noopener">
+    <span class="icon" aria-hidden="true">🗂️</span>
+    <span class="label">Planner</span>
+  </a>
+
+</body>
+
+</html>

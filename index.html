@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calendar</title>
+
+  <link rel="icon" type="image/png" sizes="32x32"
+    href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=20260516_1514" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- Supabase UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
+  <script src="./script.js?v=20260516_1514" defer></script>
+</head>
+
+<body>
+  <!-- ---------- Login Card ---------- -->
+  <div class="card" id="loginCard" style="display:none">
+    <div class="logo">Calendar</div>
+    <div class="subtitle">Đăng nhập bằng email &amp; mật khẩu của bạn</div>
+
+    <div class="field">
+      <input id="email" type="email" autocomplete="username" placeholder="Email" required />
+    </div>
+
+    <div class="field">
+      <input id="password" type="password" autocomplete="current-password" placeholder="Mật khẩu" required />
+      <button class="toggle-password" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+    </div>
+
+    <button class="btn" id="login">Đăng nhập</button>
+    <div id="message" aria-live="polite"></div>
+  </div>
+
+<main id="calendarBoard" class="board hidden" aria-live="polite">
+    <div class="board-header">
+      <h1><i class="fa-solid fa-calendar-week"></i> Weekly Schedules</h1>
+      <div class="view-toggle">
+        <button id="viewByStudent" class="toggle active" data-view="student">
+          <i class="fa-solid fa-user-graduate"></i> By student
+        </button>
+        <button id="viewByDay" class="toggle" data-view="day">
+          <i class="fa-solid fa-calendar-day"></i> By day
+        </button>
+        <button id="refreshBoard" class="icon-btn" title="Refresh">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- NEW: Redesigned Filter Bar -->
+    <div class="filter-bar" id="filterBar">
+      <div class="filter-group">
+        <div class="filter-select-wrapper">
+          <i class="fa-solid fa-chalkboard-user filter-select-icon"></i>
+          <select id="teacherFilter" class="filter-select">
+            <option value="">All teachers</option>
+          </select>
+        </div>
+      </div>
+
+
+
+      <div class="filter-group">
+        <div class="filter-search-wrapper">
+          <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+          <input id="studentFilter" type="text" class="filter-search-input" 
+                 placeholder="Search student..." autocomplete="off" />
+          <button type="button" id="clearStudentFilter" class="filter-clear-btn" title="Clear">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="button" id="clearAllFilters" class="filter-reset-btn" title="Reset all filters">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Reset</span>
+      </button>
+
+      <div class="filter-count" id="filterCount"></div>
+    </div>
+
+    <!-- Missing Teachers Section -->
+    <div id="missingTeachersSection" class="missing-teachers-section" style="display:none;">
+      <div class="missing-header">
+        <i class="fa-solid fa-user-xmark"></i>
+        <span>HV chưa có GV phụ trách</span>
+        <button type="button" class="collapse-btn" id="collapseMissingBtn" title="Thu gọn">
+          <i class="fa-solid fa-chevron-up"></i>
+        </button>
+      </div>
+      <div id="missingTeachersContent" class="missing-content"></div>
+    </div>
+
+    <!-- Section 2: Lịch học và GV phụ trách -->
+    <div id="scheduleSection" class="schedule-section" style="display:none;">
+      <div class="schedule-header">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>Lịch học và GV phụ trách</span>
+        <div id="filteredTeacherBadge" class="filtered-teacher-badge"></div>
+      </div>
+      <div id="boardContent" class="schedule-content"></div>
+    </div>
+
+    <!-- Board content when no filter (shows teacher groups) -->
+    <div id="boardContentUnfiltered"></div>
+  </main>
+
+  <a href="https://register.tansinh.info" class="user-fab" target="_blank" rel="noopener noreferrer"
+    aria-label="Register / +User" title="Register">
+    <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+  </a>
+
+  <!-- Student Calendar FAB (above +User) -->
+  <button class="calendar-fab" id="openCalendarBtn" type="button" aria-label="Open calendar setup" title="Calendar">
+    <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+  </button>
+
+
+  <!-- OFF DAY: opens in a new tab -->
+  <a href="./offday.html" target="_blank" rel="noopener noreferrer" class="calendar-fab offday-fab"
+    id="openOffdayBtn" aria-label="Off Day notice" title="Off Day notice" style="bottom:116px;">
+    <i class="fa-solid fa-umbrella-beach" aria-hidden="true"></i>
+  </a>
+
+
+  <!-- Big Calendar Modal -->
+  <div class="modal-backdrop" id="calendarModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+      <div class="modal-header">
+        <h2 id="calTitle"><i class="fa-solid fa-calendar-days"></i> Student Calendar</h2>
+        <button class="modal-close" id="calCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Student input with suggestions -->
+        <div class="grid">
+          <div class="form-group">
+            <label for="studentNameInput">Student</label>
+            <div class="autocomplete">
+              <input id="studentNameInput" type="text" placeholder="Type 4+ letters to search…" autocomplete="off" />
+              <div id="studentNameSuggestions" class="autocomplete-list hidden"></div>
+            </div>
+            <small class="tip">Suggestions from: danh_sach_hv.email</small>
+
+          </div>
+
+
+
+          <!-- NEW: Status field, aligned to the right of Student -->
+          <div class="form-group">
+            <label for="studentStatusInput">Status</label>
+            <input id="studentStatusInput" type="number" inputmode="numeric" min="0" step="1" placeholder="Auto"
+              readonly aria-readonly="true" />
+            <small class="tip">Stored in: students.status</small>
+          </div>
+        </div>
+
+
+
+
+
+        <!-- Schedule rows -->
+        <div class="section-title">Learning days & time</div>
+        <div id="scheduleRows"></div>
+        <button class="btn-outline" id="addRowBtn" type="button">
+          <i class="fa-solid fa-plus"></i> Add day & time
+        </button>
+
+        <div class="tip">Example: Mon 08:00, Tue 08:00, Thu 19:00</div>
+      </div>
+
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="calCancelBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="calSaveBtn" type="button">
+          <i class="fa-solid fa-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Calendar Modal -->
+  <div class="modal-backdrop" id="teacherCalendarModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherCalTitle">
+      <div class="modal-header">
+        <h2 id="teacherCalTitle"><i class="fa-solid fa-chalkboard-user"></i> Teacher Calendar</h2>
+        <button class="modal-close" id="teacherCalCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid">
+          <div class="form-group">
+            <label for="teacherNameInput">Teacher</label>
+            <div class="autocomplete">
+              <input id="teacherNameInput" type="text" placeholder="Type 4+ letters to search…" autocomplete="off" />
+              <div id="teacherNameSuggestions" class="autocomplete-list hidden"></div>
+            </div>
+            <small class="tip">Suggestions from: user_roles.full_name</small>
+          </div>
+        </div>
+
+        <div class="section-title">Free time ranges</div>
+        <div id="teacherScheduleRows"></div>
+        <button class="btn-outline" id="addTeacherRowBtn" type="button">
+          <i class="fa-solid fa-plus"></i> Add day & time range
+        </button>
+
+        <div class="tip">Example: Mon 08:00–12:00 & 18:00–21:00</div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="teacherCalCancelBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="teacherCalSaveBtn" type="button">
+          <i class="fa-solid fa-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Learn today (new chip button, opens new tab) -->
+  <a href="./learntoday.html" target="_blank" rel="noopener noreferrer"
+    class="teacher-calendar-chip" aria-label="Open Learn today in a new tab" title="Learn today" style="bottom:120px;">
+    <span class="icon" aria-hidden="true">🎓</span>
+    <span class="label">Learn today</span>
+  </a>
+
+  <!-- TTKB Timeline (new chip button, opens new tab) -->
+  <a href="https://session.tansinh.info/availability" target="_blank" rel="noopener noreferrer" class="teacher-calendar-chip"
+    aria-label="Open TTKB Timeline in a new tab" title="TTKB Timeline" style="bottom:72px;">
+    <span class="icon" aria-hidden="true">🕒</span>
+    <span class="label">TTKB Timeline</span>
+  </a>
+
+
+  <!-- Teacher Calendar (distinct chip-style button, opens new tab) -->
+  <a href="./teachercalendar.html" target="_blank" rel="noopener noreferrer" class="teacher-calendar-chip"
+    aria-label="Open Teacher Calendar in a new tab" title="Teacher Calendar">
+    <span class="icon" aria-hidden="true">📅</span>
+    <span class="label">Teacher Calendar</span>
+  </a>
+
+
+
+
+</body>
+
+</html>
