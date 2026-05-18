@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Learn Today</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png"
+        type="image/png" />
+    <link rel="shortcut icon" href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png"
+        type="image/png" />
+    <link rel="apple-touch-icon"
+        href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
+
+
+    <!-- Reuse your main CSS -->
+    <link rel="stylesheet" href="style.css?v=20260516_1514" />
+
+    <!-- Supabase (same as your main page uses) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
+
+    <!-- Optional icons (used by your cards; safe to include even if not needed) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        /* ===== Unjoined overlay (big alert) ===== */
+        .unjoined-overlay-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeInBackdrop 0.3s ease;
+        }
+        @keyframes fadeInBackdrop {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+        .unjoined-overlay-box {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 28px 24px 24px;
+            max-width: 440px;
+            width: 92vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .unjoined-overlay-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+        .unjoined-overlay-header i {
+            font-size: 28px;
+            color: #ef4444;
+            animation: pulseIcon 1.2s ease-in-out infinite;
+        }
+        @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        .unjoined-overlay-subtext {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 14px;
+            font-weight: 500;
+        }
+        .unjoined-student-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .unjoined-student-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #fef2f2, #fff1f2);
+            border: 1.5px solid #fca5a5;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #991b1b;
+        }
+        .unjoined-student-item .unjoined-time {
+            margin-left: auto;
+            font-size: 13px;
+            font-weight: 700;
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 3px 8px;
+            border-radius: 8px;
+        }
+        .unjoined-student-item i {
+            color: #ef4444;
+            font-size: 16px;
+        }
+        .unjoined-dismiss-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .unjoined-dismiss-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+
+        /* Report (flag) default = soft slate; when has note = bright sky */
+        .report-btn {
+            color: #94a3b8;
+        }
+
+        /* slate-400 */
+        .report-btn:hover {
+            color: #64748b;
+        }
+
+        /* slate-500 */
+        .report-btn.has-note {
+            color: #0ea5e9;
+        }
+
+        /* sky-500 */
+        .report-btn.has-note:hover {
+            color: #0284c7;
+        }
+
+        /* sky-600 */
+
+        /* The “Xem” pill/link */
+        .xem-btn {
+            position: absolute;
+            top: 10px;
+            right: 36px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #0ea5e9;
+            /* sky-500 */
+        }
+
+        .xem-btn:hover {
+            text-decoration: underline;
+        }
+
+
+        /* Offday badge — enhanced detail card */
+        .offday-badge { display: none; }
+        .offday-detail-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1.5px solid #f59e0b;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #92400e;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.18);
+            max-width: 260px;
+        }
+        .offday-detail-badge i {
+            font-size: 11px;
+            width: 14px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .offday-detail-top {
+            font-weight: 800;
+            font-size: 13px;
+            color: #b45309;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .offday-detail-range,
+        .offday-detail-reporter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+        .offday-makeup-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #065f46;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 3px 8px;
+            margin-top: 2px;
+        }
+        .offday-makeup-line.offday-no-makeup {
+            color: #991b1b;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        /* chip container now acts as the positioning anchor */
+        .chip-wrap {
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-right: 8px;
+        }
+
+        /* tiny pill that sits just above the time chip; no layout space taken */
+        .breakout-tag {
+            position: absolute;
+            bottom: calc(100% + 14px);
+            /* 14px gap above the chip */
+            left: 6px;
+            /* tuck in a bit from the left edge of the chip */
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.1;
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            /* fully passive */
+            background: #e0f2fe;
+            /* sky-100 */
+            color: #0284c7;
+            /* sky-600 */
+            opacity: .95;
+        }
+
+
+        .teacher-under {
+            display: block;
+            margin-top: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            /* slate-700 */
+            background: #f1f5f9;
+            /* slate-100 */
+            padding: 2px 6px;
+            border-radius: 6px;
+            line-height: 1.2;
+        }
+
+        .breakout-above {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #0ea5e9;
+            /* sky-500 */
+            background: #e0f2fe;
+            /* sky-100 */
+            padding: 2px 6px;
+            border-radius: 6px;
+            line-height: 1.2;
+        }
+
+
+        /* Make-up badge */
+        .makeup-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1;
+            background: #0ea5e9;
+            /* sky-500 */
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dim a card for off-day students */
+        .student-card.offday-dim {
+            opacity: 0.82;
+            /* tweak: 0.9 = lighter, 0.75 = stronger */
+        }
+
+
+        /* Dotted border overlay for off-day cards — matches the badge color (#f59e0b) */
+        .student-card.offday-dim::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            /* draw inside the card, no layout shift */
+            border: 2px dotted #f59e0b;
+            /* same color as your "Nghỉ hôm nay" badge */
+            border-radius: inherit;
+            /* follow the card’s rounded corners */
+            pointer-events: none;
+            /* clicks still go through */
+        }
+
+        /* Red outline when time is Exceeded */
+        .student-card.exceeded-alert {
+            box-shadow: 0 0 0 2px #ef4444 inset;
+            /* red outline */
+        }
+
+
+
+        /* Floating + Student button */
+        .add-student-fab {
+            position: fixed;
+            right: 18px;
+            /* was left */
+            left: auto;
+            bottom: 18px;
+            z-index: 30;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 9999px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #111827;
+            font-weight: 600;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: box-shadow 150ms ease, transform 150ms ease;
+        }
+
+        /* Suggestion list under Add Student input */
+        #addStudentBox .suggest-list {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 50;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            max-height: 240px;
+            overflow: auto;
+        }
+
+        #addStudentBox .suggest-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #addStudentBox .suggest-item:hover {
+            background: #f3f4f6;
+        }
+
+        #addStudentBox .suggest-item.disabled {
+            cursor: default;
+            color: #9ca3af;
+        }
+
+        #addStudentBox .si-name {
+            font-weight: 700;
+        }
+
+        #addStudentBox .si-email {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+
+        .add-student-fab:hover {
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .add-student-fab:active {
+            transform: translateY(0);
+        }
+
+        /* Slightly slimmer dialog for Add Student */
+        #addStudentBox .confirm-dialog {
+            max-width: 420px;
+            padding: 18px 18px 14px;
+            border-radius: 14px;
+        }
+
+        /* Make the input a bit comfier here */
+        #addStudentInput {
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 12px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        #addStudentInput:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+
+        /* === Off-day callout styles (flag popup) === */
+        .offday-callout {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #fff7ed;
+            /* amber-50 */
+            border: 1px solid #fdba74;
+            /* amber-300 */
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin: 8px 0 10px;
+        }
+
+        .offday-callout .emoji {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: #ffedd5;
+            /* amber-100 */
+        }
+
+        .offday-callout .text {
+            font-size: 13px;
+            color: #7c2d12;
+        }
+
+        /* amber-900 */
+        .offday-btn {
+            margin-left: auto;
+            text-decoration: none;
+            background: #f59e0b;
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            border-radius: 9999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .1);
+        }
+
+        .offday-btn:hover {
+            background: #d97706;
+        }
+
+        /* darker amber */
+        .offday-btn:focus {
+            outline: 2px solid #fb923c;
+            outline-offset: 2px;
+        }
+
+        /* === Top header redesign === */
+        .page-head {
+            padding: 18px 18px 10px;
+            background: #f8fafc;
+            /* soft background strip */
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 6px 0 4px;
+        }
+
+        .day-chip {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .stat-cards {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 10px 14px;
+            min-width: 110px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .03);
+        }
+
+        .stat-num {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+            text-transform: capitalize;
+        }
+
+        /* === Compact header v2 (one line) === */
+        .page-head.compact {
+            padding: 8px 16px;
+            /* much shorter */
+            background: #fff;
+            /* blend with page */
+            border-bottom: 1px solid #f1f5f9;
+            /* hairline */
+        }
+
+        .head-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .head-row .section-title {
+            margin: 0;
+            /* kill extra vertical space */
+            line-height: 1.1;
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #64748b;
+            /* slate-500 */
+        }
+
+        /* tiny day chip */
+        .day-badge {
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: #eef2ff;
+            color: #4f46e5;
+            line-height: 20px;
+        }
+
+        /* tiny number chips */
+        .count-chip {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .count-chip b {
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1;
+            color: #0f172a;
+            /* slate-900 */
+        }
+
+        .count-chip span {
+            font-size: 12px;
+            text-transform: capitalize;
+        }
+
+        /* mobile: let chips wrap under title if needed */
+        @media (max-width: 640px) {
+            .head-row {
+                align-items: flex-start;
+            }
+
+            .meta {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+
+        #rtBadge {
+            display: none !important;
+        }
+
+
+        /* the time chip acts as the positioning anchor */
+        .duo-chip {
+            position: relative;
+        }
+
+        /* tiny pill above the chip; takes no layout space */
+        .breakout-tag {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            /* sit above the chip with gap */
+            left: 8px;
+            /* nudge in from left edge of chip */
+            transform: translateY(0px);
+            /* no extra shift */
+            z-index: 1;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.1;
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            background: #e0f2fe;
+            /* sky-100 */
+            color: #0284c7;
+            /* sky-600 */
+            opacity: .95;
+        }
+
+        /* (optional) if anything overlaps, give the row a hair more top room */
+        /* .day-row { padding-top: 6px; } */
+
+        /* Small inline badge next to name */
+        .breakout-mini {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.1;
+            border-radius: 6px;
+            background: #e0f2fe;
+            /* sky-100 */
+            color: #0284c7;
+            /* sky-600 */
+            white-space: nowrap;
+        }
+
+        /* If you still keep .breakout-above in markup anywhere, neutralize its extra space */
+        .breakout-above {
+            display: none !important;
+        }
+
+
+        /* --- Vertically center the card contents --- */
+
+        /* give the row a consistent vertical rhythm */
+        .student-card .student-week {
+            /* keep your current grid/columns — just center items on the block axis */
+            align-items: center;
+            /* grid item vertical centering */
+            align-content: center;
+            /* if the grid has multiple rows */
+            min-height: 78px;
+            /* tweak: 68–84px also works */
+            padding-block: 12px;
+            /* equal top & bottom padding */
+        }
+
+        /* make sure every cell aligns to the middle even if a child overrode it */
+        .student-card .student-name,
+        .student-card .day-row,
+        .student-card .join-toggle,
+        .student-card .start-delta,
+        .student-card .time-used,
+        .student-card .time-left,
+        .student-card .complete-btn {
+            align-self: center;
+        }
+
+        /* chip row: keep pills centered on their line */
+        .day-row {
+            display: flex;
+            /* (ok even if it was already flex) */
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* tiny baseline fixes so pills don’t “ride high” */
+        .duo-chip,
+        .teacher-chip,
+        .teacher-under,
+        .status-badge,
+        .breakout-mini {
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+        /* small-screen comfort */
+        @media (max-width: 640px) {
+            .student-card .student-week {
+                min-height: 64px;
+                padding-block: 10px;
+            }
+        }
+
+        /* Keep breakout links looking like your pills */
+.breakout-mini a { color: inherit; text-decoration: none; }
+.breakout-mini a:hover { text-decoration: underline; }
+
+a.breakout-tag { color: inherit; text-decoration: none; }
+a.breakout-tag:hover { text-decoration: underline; }
+
+
+/* Smooth card motion & appearance */
+.student-card { transition: transform .2s ease, opacity .2s ease, box-shadow .25s ease, background-color .25s ease; will-change: transform; }
+.student-card.enter { opacity: 0; transform: scale(.985); }
+.student-card.leaving { opacity: 0; transform: scale(.985); }
+
+/* Soften alert/exceeded style flips */
+.time-left, .time-used, .start-delta { transition: background-color .25s ease, color .25s ease, outline-color .25s ease; }
+
+/* Bottom-left corner for status + breakout */
+/* Bottom-left corner for status + breakout */
+.meta-bottom-left{
+  position: absolute;
+  left: 12px;
+  bottom: 34px; /* ↑ move closer to the name; increase this number to move higher */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 65%;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.meta-bottom-left > .status-badge,
+.meta-bottom-left > .breakout-mini{
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Give a hair more room so the footer never overlaps content */
+.student-card .student-week{ padding-bottom: 36px; }
+
+/* Optional: allow wrapping on very small screens */
+/*
+@media (max-width: 420px){
+  .meta-bottom-left{ max-width: 75%; flex-wrap: wrap; }
+  .meta-bottom-left > *{ white-space: normal; }
+}
+*/
+
+/* 1) Center everything in the row (the grid container) */
+.student-card .student-week{
+  /* you already use grid — this centers each grid cell vertically */
+  align-items: center;       /* center items in their cells */
+  align-content: center;     /* if multiple rows, center the set of rows */
+  padding-block: 12px;       /* equal top/bottom padding */
+  min-height: 78px;          /* keeps a steady card height */
+}
+
+/* 2) Make sure each “cell” actually centers itself in the grid */
+.student-card .student-name,
+.student-card .day-row,
+.student-card .join-toggle,
+.student-card .start-delta,
+.student-card .time-used,
+.student-card .time-left,
+.student-card .complete-btn{
+  align-self: center;
+}
+
+/* 3) The badges/pills themselves: remove baseline quirks */
+.day-row{                       /* the chip row */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* inline pills often “ride high” because of baseline; fix that */
+.duo-chip,
+.teacher-chip,
+.teacher-under,
+.status-badge,
+.breakout-mini,
+.sd-label,
+.tu-label,
+.tl-label{
+  display: inline-flex;
+  align-items: center;         /* centers the text inside the pill */
+  line-height: 1;              /* kill extra baseline space */
+  vertical-align: middle;      /* middle relative to neighbors */
+}
+
+/* 4) Make the “timer blocks” line up perfectly with their labels */
+.start-delta,
+.time-used,
+.time-left{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;                    /* label ↔ time */
+}
+
+/* 5) If the footer badges at the bottom-left shift the visual center,
+      keep some room so content stays truly centered. */
+.meta-bottom-left{ bottom: 34px; }
+.student-card .student-week{ padding-bottom: 36px; } /* reserve space for the footer */
+
+
+/* Hard-center the whole row */
+.student-card .student-week{
+  /* keep grid layout, just force vertical centering */
+  align-items: center !important;      /* center each grid cell’s content */
+  align-content: center !important;    /* center the track(s) if there’s extra height */
+  min-height: 72px;                    /* give it some vertical room to center into */
+  padding-block: 10px 28px;            /* smaller bottom reserve for footer badges */
+}
+
+/* Make sure every visible cell actually centers itself */
+.student-card .student-week > :not(.meta-bottom-left):not(.offday-badge):not(.makeup-badge){
+  align-self: center !important;
+}
+
+/* Chip row + counters: vertically center their contents */
+.day-row,
+.start-delta,
+.time-used,
+.time-left{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pills & small badges: kill baseline drift */
+.duo-chip,
+.teacher-chip,
+.teacher-under,
+.status-badge,
+.breakout-mini{
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Optional 1px optical nudge if your font still looks a hair high */
+.day-row, .start-delta, .time-used, .time-left { transform: translateY(1px); }  /* <-- try 0 or 2 if you prefer */
+
+/* BR badge above date pill: add bottom gap */
+.chip-wrap > .teacher-chip:first-child {
+    margin-bottom: 4px;
+    margin-top: 0;
+}
+
+/* TTKB badge below date pill: small top gap */
+.chip-wrap > .teacher-chip:last-child {
+    margin-top: 3px;
+}
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- ---------- Login Card (same style as index.html) ---------- -->
+    <div class="card" id="loginCard" style="display:none">
+        <div class="logo">Learn Today</div>
+        <div class="subtitle">Đăng nhập bằng email &amp; mật khẩu của bạn</div>
+
+        <div class="field">
+            <input id="ltEmail" type="email" autocomplete="username" placeholder="Email" required />
+        </div>
+
+        <div class="field">
+            <input id="ltPassword" type="password" autocomplete="current-password" placeholder="Mật khẩu" required />
+            <button class="toggle-password" id="ltTogglePwd" type="button" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+        </div>
+
+        <button class="btn" id="ltLogin" type="button">Đăng nhập</button>
+        <div id="ltMessage" aria-live="polite"></div>
+    </div>
+
+    <!-- All app content wrapped so we can show/hide it -->
+    <div id="ltAppArea" style="display:none">
+
+    <!-- Simple header -->
+    <div class="page-head compact">
+        <div class="head-row">
+            <h1 class="section-title">Learn Today</h1>
+            <div id="todayInfo" class="meta">Loading…</div>
+        </div>
+    </div>
+
+
+
+    <!-- Big overlay warning for unjoined students -->
+    <div id="unjoinedWarningBanner" style="display:none;">
+      <div class="unjoined-overlay-backdrop" id="unjoinedBackdrop">
+        <div class="unjoined-overlay-box">
+          <div class="unjoined-overlay-header">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="unjoinedWarningText">HV CHƯA VÀO HỌC</span>
+          </div>
+          <div class="unjoined-overlay-subtext">Các học viên sau đã đến giờ học nhưng chưa được đánh dấu Joined:</div>
+          <div id="unjoinedStudentList" class="unjoined-student-list"></div>
+          <button id="unjoinedDismissBtn" class="unjoined-dismiss-btn" type="button">Tôi đã biết — Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards go here -->
+    <div id="learnTodayContent" style="padding: 0 18px 24px;"></div>
+
+    <!-- Completed section (hidden until there is at least 1 completed card) -->
+    <div id="completedArea" style="padding: 0 18px 40px;">
+        <h2 class="section-title" id="completedTitle" style="margin:24px 0 12px; display:none;">
+            Completed today
+        </h2>
+        <div id="completedContent"></div>
+    </div>
+
+
+    <!-- Confirm popup -->
+    <div id="confirmBox" class="confirm-overlay" hidden>
+        <div class="confirm-dialog" role="dialog" aria-modal="true">
+            <div class="confirm-head">
+                <div class="confirm-title">
+                    <span class="emoji">📝</span>
+                    <span id="confirmQuestion">...</span>
+                </div>
+                <div class="confirm-note">
+
+                    Chụp màn hình hiển thị <b>tên học viên</b> trong Meeting.
+                    Ảnh cần thấy <b>ngày–giờ</b> trên máy tính của bạn.
+                </div>
+            </div>
+
+
+
+
+
+            <div class="field-row">
+                <label for="confirmProof">Hình chụp Meeting</label>
+                <div class="input-with-copy">
+                    <input id="confirmProof" type="text" placeholder="Dán ảnh bạn đã chụp màn hình" />
+                    <span id="confirmSpin" class="upload-spinner" hidden></span>
+                    <button id="copyProof" type="button" title="Sao chép liên kết">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+
+
+            </div>
+
+            <div class="confirm-actions">
+                <button id="confirmCancel" class="btn-cancel" type="button">Hủy</button>
+                <button id="confirmOk" class="btn-confirm" type="button">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Short report popup (slender + paste-to-upload hint) -->
+    <div id="reportBox" class="confirm-overlay" hidden>
+        <div class="confirm-dialog" role="dialog" aria-modal="true"
+            style="max-width:480px; padding:18px 18px 14px; border-radius:14px;">
+            <div class="confirm-head" style="margin-bottom:8px;">
+                <div class="confirm-title" style="display:flex; align-items:center; gap:10px;">
+                    <span class="emoji"
+                        style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#eef2ff; color:#4f46e5;">🗒️</span>
+                    <div>
+                        <div style="font-weight:700;">Báo cáo ngắn về HV</div>
+                        <div style="font-size:13px; color:#6b7280; margin-top:2px;">
+                            Ví dụ: vì sao HV chưa tham gia học, GV đã gọi hay nhắn Zalo chưa?
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Off-day callout (link to the off-day form) -->
+            <div class="offday-callout" id="offdayCallout">
+                <div class="emoji">🌤️</div>
+                <div class="text">
+                    Nếu HV xin phép nghỉ hôm nay, hãy báo cáo ngày nghỉ và hỏi HV về ngày học bù. Khi báo cáo HV nghỉ,
+                    GV cần lên lịch học bù trong phần "Make-up class".
+                </div>
+                <a id="offdayLink" class="offday-btn" href="./offday.html" target="_blank"
+                    rel="noopener">
+                    Off-day report
+                </a>
+            </div>
+
+
+            <!-- Short-report text area (needed by showShortReport) -->
+            <div class="field-row" style="margin-top:8px;">
+                <label for="reportText">Nội dung báo cáo ngắn</label>
+                <textarea id="reportText" rows="4"
+                    placeholder="Nhập báo cáo hoặc dán ảnh từ clipboard (link sẽ được chèn vào đây)…"
+                    style="width:100%; min-height:88px; border-radius:10px; border:1px solid #e5e7eb; padding:10px 12px; resize:vertical; outline:none; font-size:14px;"></textarea>
+                <div class="hint"
+                    style="font-size:12px; color:#6b7280; margin-top:6px; display:flex; align-items:center; gap:6px;">
+                    Mẹo: Nhấn Ctrl/⌘+V để dán ảnh, ảnh sẽ tự tải lên & chèn link.
+                    <span id="reportPasteSpin" class="upload-spinner" hidden></span>
+                </div>
+            </div>
+
+            <!-- ✅ Added action buttons for the short report -->
+            <div class="confirm-actions" style="margin-top:12px;">
+                <button id="reportCancel" class="btn-cancel" type="button">Hủy</button>
+                <button id="reportSend" class="btn-confirm" type="button">Gửi</button>
+            </div>
+
+
+
+        </div>
+    </div>
+
+
+
+    <!-- View-only popup for bc_ngan -->
+    <div id="viewBox" class="confirm-overlay" hidden>
+        <div class="confirm-dialog" role="dialog" aria-modal="true">
+            <div class="confirm-head">
+                <div class="confirm-title">
+                    <span class="emoji">📄</span>
+                    <span>Nội dung báo cáo đã lưu</span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div id="viewReportText"
+                    style="white-space:pre-wrap; background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:10px; min-height:48px;">
+                </div>
+            </div>
+
+            <div class="confirm-actions">
+                <button id="viewClose" class="btn-confirm" type="button">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- NEW: external JS file -->
+    <script src="learntoday.js?v=20260516_1514" defer></script>
+
+
+
+    <!-- Floating “+ Student” button -->
+    <button id="openAddStudent" class="add-student-fab" type="button" title="Add a student" aria-label="Add a student">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        <span>Student</span>
+    </button>
+
+    <!-- Add Student popup -->
+    <div id="addStudentBox" class="confirm-overlay" hidden>
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="addStudentTitle">
+            <div class="confirm-head" style="margin-bottom:8px;">
+                <div class="confirm-title" style="display:flex; align-items:center; gap:10px;">
+                    <span class="emoji"
+                        style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#ecfeff; color:#0891b2;">➕</span>
+                    <div>
+                        <div id="addStudentTitle" style="font-weight:700;">Thêm học viên</div>
+                        <div style="font-size:13px; color:#6b7280; margin-top:2px;">
+                            Nhập <b>email</b> hoặc <b>tên học viên</b> không có trong danh sách hiện tại.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field-row" style="margin-top:8px; position: relative;">
+                <label for="addStudentInput">Học viên</label>
+                <input id="addStudentInput" type="text" placeholder="vd: student@example.com hoặc tên HV" />
+                <!-- suggestions appear here -->
+                <div id="addStudentSuggest" class="suggest-list" hidden></div>
+            </div>
+
+
+            <div class="confirm-actions" style="margin-top:12px;">
+                <button id="addStudentClose" class="btn-cancel" type="button">Hủy</button>
+                <button id="addStudentOk" class="btn-confirm" type="button">Gửi</button>
+            </div>
+
+
+        </div>
+    </div>
+
+    </div><!-- end #ltAppArea -->
+
+</body>
+
+</html>
