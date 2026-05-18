@@ -772,6 +772,57 @@ function setupBoardUI() {
   // Click a pill to assign a teacher
   const container = document.getElementById('boardContent');
 
+  // ---- Custom confirmation popup for removing teachers ----
+  function showRemoveTeacherConfirm({ teacherName, type }) {
+    return new Promise((resolve) => {
+      document.getElementById('removeTeacherOverlay')?.remove();
+
+      const isBreakout = type === 'breakout';
+      const typeLabel = isBreakout ? 'Breakout' : 'TTKB';
+      const iconBg = isBreakout ? '#eef2ff' : '#f0fdf4';
+      const iconColor = isBreakout ? '#6366f1' : '#16a34a';
+      const icon = isBreakout ? 'fa-users' : 'fa-chalkboard-teacher';
+
+      const overlay = document.createElement('div');
+      overlay.id = 'removeTeacherOverlay';
+      overlay.className = 'remove-teacher-overlay';
+      overlay.innerHTML = `
+        <div class="remove-teacher-popup">
+          <div class="rtp-icon" style="background:${iconBg};color:${iconColor};">
+            <i class="fa-solid ${icon}"></i>
+          </div>
+          <h3 class="rtp-title">Remove ${typeLabel} Teacher</h3>
+          <p class="rtp-message">
+            Are you sure you want to remove
+            <strong>${escapeHtml(teacherName)}</strong>
+            as the <span class="rtp-type-badge" style="background:${iconBg};color:${iconColor};">${typeLabel}</span> teacher from this slot?
+          </p>
+          <div class="rtp-actions">
+            <button type="button" class="rtp-btn rtp-btn-cancel">Cancel</button>
+            <button type="button" class="rtp-btn rtp-btn-remove">
+              <i class="fa-solid fa-user-minus"></i> Remove
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('visible'));
+
+      const close = (result) => {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 200);
+        resolve(result);
+      };
+
+      overlay.querySelector('.rtp-btn-cancel').addEventListener('click', () => close(false));
+      overlay.querySelector('.rtp-btn-remove').addEventListener('click', () => close(true));
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(false); });
+      overlay.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') close(false); });
+      overlay.querySelector('.rtp-btn-cancel').focus();
+    });
+  }
+
   // Show actions on hover (no CSS changes)
   container?.addEventListener('mouseover', (e) => {
     const card = e.target.closest('.student-card');
@@ -803,7 +854,8 @@ function setupBoardUI() {
       const schedId = breakoutChip.dataset.schedId;
       const bEmail = breakoutChip.dataset.breakoutEmail || '';
       const bName = breakoutChip.textContent.trim();
-      if (!confirm(`Remove breakout teacher "${bName}" from this slot?`)) return;
+      const confirmed = await showRemoveTeacherConfirm({ teacherName: bName, type: 'breakout' });
+      if (!confirmed) return;
       try {
         const rsp = await fetch('/api/set-breakout-teacher-cal', {
           method: 'POST',
@@ -828,7 +880,8 @@ function setupBoardUI() {
       const schedId = teacherChip.dataset.schedId;
       const tEmail = teacherChip.dataset.teacherEmail || '';
       const tName = teacherChip.textContent.trim();
-      if (!confirm(`Remove TTKB teacher "${tName}" from this slot?`)) return;
+      const confirmed = await showRemoveTeacherConfirm({ teacherName: tName, type: 'ttkb' });
+      if (!confirmed) return;
       try {
         const rsp = await fetch('/api/set-teacher', {
           method: 'POST',
