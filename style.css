@@ -3146,7 +3146,8 @@ body.app-mode {
   color: #3730a3;               /* indigo-800 text */
   border: 1px solid #c7d2fe;    /* indigo-200 border */
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
-  pointer-events: none;         /* display only */
+  pointer-events: auto;          /* clickable for removal */
+  cursor: pointer;
 }
 
 .breakout-chip .dot {
@@ -3158,6 +3159,18 @@ body.app-mode {
 
 /* If the name contains a <br>, hide it so the chip stays one line */
 .teacher-chip br { display: none; }
+
+/* Hover effects for clickable teacher/breakout chips */
+.teacher-chip[data-sched-id]:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+.breakout-chip[data-sched-id]:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
 
 
 /* ========== MISSING TEACHERS SECTION ========== */

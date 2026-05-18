@@ -795,6 +795,56 @@ function setupBoardUI() {
 
 
   container?.addEventListener('click', async (e) => {
+    // -2) Breakout-chip clicked? -> confirm and remove breakout teacher
+    const breakoutChip = e.target.closest('.breakout-chip[data-sched-id]');
+    if (breakoutChip) {
+      e.preventDefault();
+      e.stopPropagation();
+      const schedId = breakoutChip.dataset.schedId;
+      const bEmail = breakoutChip.dataset.breakoutEmail || '';
+      const bName = breakoutChip.textContent.trim();
+      if (!confirm(`Remove breakout teacher "${bName}" from this slot?`)) return;
+      try {
+        const rsp = await fetch('/api/set-breakout-teacher-cal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schedId, breakoutEmail: null })
+        });
+        const out = await rsp.json();
+        if (!rsp.ok || !out?.ok) throw new Error(out?.error || 'Remove failed');
+        renderCalendarBoard(true);
+      } catch (err) {
+        alert(`Could not remove breakout teacher: ${err?.message || 'Unknown error'}`);
+        console.error(err);
+      }
+      return;
+    }
+
+    // -1) Teacher-chip clicked? -> confirm and remove TTKB teacher
+    const teacherChip = e.target.closest('.teacher-chip[data-sched-id]');
+    if (teacherChip) {
+      e.preventDefault();
+      e.stopPropagation();
+      const schedId = teacherChip.dataset.schedId;
+      const tEmail = teacherChip.dataset.teacherEmail || '';
+      const tName = teacherChip.textContent.trim();
+      if (!confirm(`Remove TTKB teacher "${tName}" from this slot?`)) return;
+      try {
+        const rsp = await fetch('/api/set-teacher', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schedId, teacherEmail: null })
+        });
+        const out = await rsp.json();
+        if (!rsp.ok || !out?.ok) throw new Error(out?.error || 'Remove failed');
+        renderCalendarBoard(true);
+      } catch (err) {
+        alert(`Could not remove teacher: ${err?.message || 'Unknown error'}`);
+        console.error(err);
+      }
+      return;
+    }
+
     // 0) BR badge clicked? -> open Smart Assign popup for Breakout teachers only.
     const brBtn = e.target.closest('.br-badge-inline');
     if (brBtn) {
@@ -1922,7 +1972,7 @@ function renderByStudent({ students, schedules }) {
           title="${sl.buoi_phu ? 'Buổi phụ · Click to assign a teacher' : 'Click to assign a teacher'}">
 
       ${breakoutLabel ? `
-        <span class="breakout-chip" title="Breakout teacher">
+        <span class="breakout-chip" title="Click to remove breakout teacher" data-sched-id="${sl.id}" data-breakout-email="${sl.breakout_email || ''}" style="cursor:pointer;pointer-events:auto;">
           <span class="dot"></span>
           ${escapeHtml(breakoutLabel)}
         </span>` : ``}
@@ -1934,7 +1984,7 @@ function renderByStudent({ students, schedules }) {
       </span>
     </span>
 
-    ${assignedLabel ? `<span class="teacher-chip">${escapeHtml(assignedLabel)}</span>` : ``}
+    ${assignedLabel ? `<span class="teacher-chip" data-sched-id="${sl.id}" data-teacher-email="${sl.teacher_email || ''}" style="cursor:pointer;" title="Click to remove teacher">${escapeHtml(assignedLabel)}</span>` : ``}
 `;
 
 
