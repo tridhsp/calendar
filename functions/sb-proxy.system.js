@@ -3,14 +3,14 @@ module.exports = function(app) {
   const cache = require('./_cache-helper');
   // Cache config: only these GET query patterns are cached
   const CACHEABLE = [
-    { match: 'user_roles', ttl: 300 },
     { match: 'quizzes', ttl: 300 },
     { match: 'books_chapters', ttl: 3600 },
   ];
-  function getCacheKey(url) {
+  function getCacheKey(url, acceptHeader) {
     for (const rule of CACHEABLE) {
       if (url.includes(rule.match)) {
-        return { key: 'sbproxy:' + url, ttl: rule.ttl };
+        const suffix = (acceptHeader && acceptHeader.includes('pgrst.object')) ? ':single' : ':list';
+        return { key: 'sbproxy:' + url + suffix, ttl: rule.ttl };
       }
     }
     return null;
@@ -26,19 +26,15 @@ module.exports = function(app) {
       if (req.headers[h]) headers[h] = req.headers[h];
     }
     // LOG: show what we're forwarding
-    if (req.url.includes('user_roles')) {
-      console.log('[sb-proxy] user_roles request:', req.method, targetUrl);
       console.log('[sb-proxy] auth header present:', !!headers['authorization']);
       console.log('[sb-proxy] apikey present:', !!headers['apikey']);
     }
     // --- CACHE: only GET requests for cacheable patterns ---
     if (req.method === 'GET') {
-      const cacheInfo = getCacheKey(req.url);
+      const cacheInfo = getCacheKey(req.url, req.headers['accept']);
       if (cacheInfo) {
         const cached = await cache.get(cacheInfo.key);
         if (cached) {
-          if (req.url.includes('user_roles')) {
-            console.log('[sb-proxy] CACHE HIT for user_roles');
           }
           if (req.url.includes('quizzes')) {
             console.log('[sb-proxy] CACHE HIT for quizzes');
@@ -72,12 +68,10 @@ module.exports = function(app) {
       }
       const body = await response.text();
       // LOG: show what Supabase returned
-      if (req.url.includes('user_roles')) {
-        console.log('[sb-proxy] user_roles response:', response.status, body.substring(0, 200));
       }
       // --- CACHE: store successful GET responses ---
       if (req.method === 'GET' && response.status >= 200 && response.status < 300) {
-        const cacheInfo = getCacheKey(req.url);
+        const cacheInfo = getCacheKey(req.url, req.headers['accept']);
         if (cacheInfo) {
           await cache.set(cacheInfo.key, {
             status: response.status,
