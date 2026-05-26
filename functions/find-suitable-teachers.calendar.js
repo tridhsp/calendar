@@ -93,7 +93,7 @@ try {
       return res.status(400).json({ ok: false, error: 'Missing day_of_week or time_local' });
     }
 
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = createClient((process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL), process.env.SUPABASE_SERVICE_KEY);
     const targetMin = timeToMin(time_local);
 
     // 1) Find all teachers with availability covering this day/time

@@ -12,7 +12,7 @@ const corsHeaders = {
 module.exports = function(app) {
   app.post('/planner-data', async (req, res) => {
 try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = createClient((process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL), process.env.SUPABASE_SERVICE_KEY);
     const { teacher_email } = (req.body || {});
     if (!teacher_email) {
       return res.status(400).json({ error: 'teacher_email is required' });

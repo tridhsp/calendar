@@ -19,7 +19,7 @@ function minToTime(x) {
 module.exports = function(app) {
   app.post('/teacher-blocks-add', async (req, res) => {
 try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = createClient((process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL), process.env.SUPABASE_SERVICE_KEY);
    const { availability_id, teacher_email, day_of_week, start_time, minutes, student_email, userToken, is_temp_assignment, temp_weeks_remaining } = (req.body || {});
 
     if (!availability_id || !teacher_email || day_of_week == null || !start_time || !minutes || !student_email) {

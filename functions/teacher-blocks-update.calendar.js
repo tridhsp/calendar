@@ -19,7 +19,7 @@ function minToTime(x) {
 module.exports = function(app) {
   app.post('/teacher-blocks-update', async (req, res) => {
 try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = createClient((process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL), process.env.SUPABASE_SERVICE_KEY);
     const { block_id, teacher_email, start_time, minutes } = (req.body || {});
 
     if (!block_id || !teacher_email || !start_time || !minutes) {

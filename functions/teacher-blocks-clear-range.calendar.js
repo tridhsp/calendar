@@ -12,7 +12,7 @@ const corsHeaders = {
 module.exports = function(app) {
   app.post('/teacher-blocks-clear-range', async (req, res) => {
 try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = createClient((process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL), process.env.SUPABASE_SERVICE_KEY);
     const { availability_id, teacher_email } = (req.body || {});
 
     if (!availability_id || !teacher_email) {
