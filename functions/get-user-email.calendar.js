@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 module.exports = function(app) {
   app.get('/get-user-email', async (req, res) => {
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
 

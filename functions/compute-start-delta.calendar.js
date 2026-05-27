@@ -31,7 +31,7 @@ module.exports = function(app) {
   app.post('/compute-start-delta', async (req, res) => {
     try {
       // Verify user
-      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
       const SERVICE_ROLE = process.env.SUPABASE_SERVICE_KEY;
 
       if (!SUPABASE_URL || !SERVICE_ROLE) {

@@ -9,7 +9,7 @@ module.exports = function(app) {
         return res.status(400).send('Missing teacherEmail');
       }
 
-      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
       const SERVICE_ROLE = process.env.SUPABASE_SERVICE_KEY;
       if (!SUPABASE_URL || !SERVICE_ROLE) {
         return res.status(500).send('Server not configured');

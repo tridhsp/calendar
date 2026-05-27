@@ -16,7 +16,7 @@ try {
       return res.status(400).json({ error: 'Missing day_of_week or time_local' });
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {

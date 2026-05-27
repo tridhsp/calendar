@@ -24,7 +24,7 @@ module.exports = function(app) {
 
   // Env + admin client
   // Env + admin client
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
   const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_KEY;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
     return res.status(500).json({ error: 'Missing Supabase env vars' });

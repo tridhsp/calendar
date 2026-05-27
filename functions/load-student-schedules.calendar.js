@@ -11,7 +11,7 @@ const corsHeaders = {
 module.exports = function(app) {
   app.get('/load-student-schedules', async (req, res) => {
 try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_KEY;
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       return res.status(500).json({ ok: false, error: 'Server not configured (missing env vars)' });

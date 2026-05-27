@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 module.exports = function(app) {
   app.get('/get-teacher-board', async (req, res) => {
   // Only allow GET requests
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
   

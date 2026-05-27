@@ -50,7 +50,7 @@ try {
       return res.status(400).send('Missing student_email');
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_KEY; // keep secret
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       return res.status(500).send('Server not configured (missing env vars)');

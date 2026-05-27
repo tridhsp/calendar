@@ -17,7 +17,7 @@ let body;
 
   if (!student_email) return res.status(400).json({ error: 'student_email is required' });
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
   const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_KEY;
 
 

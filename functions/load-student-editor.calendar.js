@@ -11,7 +11,7 @@ const cors = {
 module.exports = function(app) {
   app.post('/load-student-editor', async (req, res) => {
 try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const { email } = (req.body || {});
 

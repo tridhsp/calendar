@@ -7,7 +7,7 @@ module.exports = function(app) {
       const auth = req.headers['authorization'] || '';
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
 
-      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_URL = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL);
       const SERVICE_ROLE = process.env.SUPABASE_SERVICE_KEY;
       if (!SUPABASE_URL || !SERVICE_ROLE) {
         return res.status(500).json({ error: 'Missing server env vars' });
