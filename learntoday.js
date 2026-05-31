@@ -1689,7 +1689,7 @@ async function loadLearnToday(silent = false) {
 
 
     // === ONE CALL: boot payload from server ===
-    const resBoot = await fetchWithAuth('https://meeting.tansinh.info/ts-api/learn-today-boot');
+    const resBoot = await fetchWithAuth('/api/learn-today-boot');
 
     if (!resBoot.ok) {
         container.innerHTML = `<div class="tip" style="color:#d52731">Cannot load data.</div>`;

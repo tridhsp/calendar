@@ -888,8 +888,10 @@ require("./routes/mon-cache.monitor")(app);
 // --- Supabase Proxy ---
 // REMOVED Phase7: require("./routes/sb-proxy.system")(app);
 require("./routes/db-gate.system")(app);
+require("./routes/meeting-gate.system")(app);
 require("./routes/mon-latency.monitor")(app);
 require("./routes/mon-zalo-alert.monitor")(app);
+require("./routes/rst-change-password.reset")(app);
 app.listen(PORT, () => {
   console.log('API server running on port ' + PORT);
 });
@@ -904,3 +906,8 @@ require("./routes/alert-check-ttkb.alert")(app);
 // --- TeacherCodes App Routes ---
 require("./routes/tc-get-code.teachercodes")(app);
 require("./routes/tc-upload-image.teachercodes")(app);
+
+// --- Kiosk Routes ---
+require("./routes/ksk-whitelist.kiosk")(app);
+require("./routes/msg-credentials.message")(app);
+require("./routes/reg-change-password.register")(app);
