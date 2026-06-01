@@ -374,6 +374,7 @@ require("./routes/wrt-send-zalo.writing")(app);
 
 // --- Watch App Routes (migrated from Netlify) ---
 require("./routes/watch-supabase-credentials.watch")(app);
+require("./routes/watch-breakout-count.watch")(app);
 require("./routes/watch-teachers-list.watch")(app);
 require("./routes/watch-meetings-list.watch")(app);
 require("./routes/watch-meetings-create.watch")(app);
