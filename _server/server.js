@@ -40,6 +40,7 @@ require('./routes/lesson-types.baihoc')(app);
 require('./routes/student-lookup.baihoc')(app);
 require('./routes/supabase-credentials.baihoc')(app);
 require('./routes/lessons-next.baihoc')(app);
+require('./routes/extra-next.baihoc')(app);
 require('./routes/email-suggest.baihoc')(app);
 require('./routes/lesson-submissions.baihoc')(app);
 require('./routes/device-check.baihoc')(app);
@@ -516,6 +517,8 @@ require("./routes/wts-get-worktime-data.workstimestatus")(app);
 require("./routes/wts-get-unscheduled-teachers.workstimestatus")(app);
 require("./routes/wts-get-slhvvagv-data.workstimestatus")(app);
 require("./routes/wts-get-dept-mismatch.workstimestatus")(app);
+require("./routes/wts-get-gv-warnings.workstimestatus")(app);
+require("./routes/wts-get-offday-warnings.workstimestatus")(app);
 // --- DanhSachHV App Routes (migrated from Netlify) ---
 require("./routes/dshv-supabase-credentials.danhsachhv")(app);
 require("./routes/dshv-caplop-options.danhsachhv")(app);
@@ -718,6 +721,9 @@ require("./routes/tsk-teachers.task")(app);
 require("./routes/tsk-task-delete.task")(app);
 
 require("./routes/tsk-task-update.task")(app);
+require("./routes/tsk-work-tasks-tags-update.task")(app);
+require("./routes/tsk-department-delete.task")(app);
+require("./routes/tsk-department-update.task")(app);
 
 require("./routes/tsk-update-teacher-max-sessions.task")(app);
 
@@ -889,10 +895,49 @@ require("./routes/mon-cache.monitor")(app);
 // --- Supabase Proxy ---
 // REMOVED Phase7: require("./routes/sb-proxy.system")(app);
 require("./routes/db-gate.system")(app);
+require('./routes/gb-gate.system')(app);
 require("./routes/meeting-gate.system")(app);
 require("./routes/mon-latency.monitor")(app);
 require("./routes/mon-zalo-alert.monitor")(app);
 require("./routes/rst-change-password.reset")(app);
+// --- PDF Viewer Routes ---
+require('./routes/pg-gate.pdfviewer.js')(app);
+require('./routes/pdf-supabase-credentials.pdfviewer.js')(app);
+require('./routes/pdf-presigned-url.pdfviewer.js')(app);
+require('./routes/pdf-lookup.pdfviewer.js')(app);
+require('./routes/pdf-am-i-admin.pdfviewer.js')(app);
+require('./routes/pdf-save.pdfviewer.js')(app);
+require('./routes/pdf-list.pdfviewer.js')(app);
+require('./routes/pdf-file.pdfviewer.js')(app);
+require('./routes/pdf-download-url.pdfviewer.js')(app);
+require('./routes/pdf-media-presigned-url.pdfviewer.js')(app);
+require('./routes/pdf-media-save.pdfviewer.js')(app);
+require('./routes/pdf-media-rename.pdfviewer.js')(app);
+require('./routes/pdf-media-list.pdfviewer.js')(app);
+require('./routes/pdf-delete.pdfviewer.js')(app);
+require('./routes/pdf-media-delete.pdfviewer.js')(app);
+require('./routes/pdf-test-get.pdfviewer.js')(app);
+require('./routes/pdf-test-save.pdfviewer.js')(app);
+require('./routes/pdf-answer-presign.pdfviewer.js')(app);
+require('./routes/pdf-submission-save.pdfviewer.js')(app);
+require('./routes/pdf-submission-get.pdfviewer.js')(app);
+require('./routes/pdf-search-emails.pdfviewer.js')(app);
+require('./routes/pdf-grant-attempt.pdfviewer.js')(app);
+require('./routes/pdf-answer-image.pdfviewer.js')(app);
+require('./routes/pdf-submission-delete.pdfviewer.js')(app);
+require('./routes/pdf-submission-list.pdfviewer.js')(app);
+require('./routes/pdf-am-i-staff.pdfviewer.js')(app);
+require('./routes/pdf-answer-key-list.pdfviewer.js')(app);
+require('./routes/pdf-answer-key-save.pdfviewer.js')(app);
+require('./routes/pdf-answer-key-delete.pdfviewer.js')(app);
+require('./routes/pdf-ai-mark.pdfviewer.js')(app);
+require('./routes/pdf-marking-save.pdfviewer.js')(app);
+require('./routes/pdf-self-mark.pdfviewer.js')(app);
+require('./routes/pdf-marking-get.pdfviewer.js')(app);
+require('./routes/pdf-ds-mark.pdfviewer.js')(app);
+require('./routes/pdf-answer-key-text-save.pdfviewer.js')(app);
+require('./routes/pdf-answer-key-text-get.pdfviewer.js')(app);
+// REMOVED (pdf-mark.pdfviewer.js was never created): require('./routes/pdf-mark.pdfviewer.js')(app);
 app.listen(PORT, () => {
   console.log('API server running on port ' + PORT);
 });

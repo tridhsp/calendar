@@ -54,6 +54,7 @@ async function fetchStudentBooks(email, retries = 2) {
 // ────────────────────────────────────────────────
 function bookSource(b) {
   const etype = (b.effective_type || b.book_type || '').toLowerCase();
+  if (etype === 'extra' || (b.assigned_as || '').toLowerCase() === 'extra') return null; // Extra = standalone track, never in rotation
   return TYPE_TO_SOURCE[etype] || TYPE_TO_SOURCE[(b.book_type || '').toLowerCase()] || null;
 }
 
