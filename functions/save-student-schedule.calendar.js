@@ -123,7 +123,6 @@ try {
             const sameSlot = existingArr.find(e =>
                 e.day_of_week === want.day_of_week &&
                 String(e.time_local) === String(want.time_local) &&
-                (e.timezone || tz) === (want.timezone || tz) &&
                 (!!e.buoi_phu) !== (!!want.buoi_phu)  // flipped
             );
             if (sameSlot) {
