@@ -2793,6 +2793,11 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
 
 
             const name = e.target.dataset.studentName || e.target.dataset.studentEmail || '';
+
+            // NEW: special requirements gate — teacher must read & acknowledge before joining
+            const reqAcknowledged = await maybeShowSpecialReqForEmail(studentEmail, name);
+            if (!reqAcknowledged) { e.target.checked = false; return; }
+
             const { ok, imageUrl } = await showConfirm(name);
             if (!ok) { e.target.checked = false; return; }
 
@@ -2927,6 +2932,112 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
     });
 
 
+}
+
+// ===== Special Requirements popup (Yeu cau dac biet for TTKB + Breakout) =====
+function showSpecialRequirements(studentName, groups) {
+  return new Promise(function (resolve) {
+    const overlay = document.getElementById('specialReqOverlay');
+    const nameEl = document.getElementById('specialReqName');
+    const countEl = document.getElementById('specialReqCount');
+    const ttkbCard = document.getElementById('specialReqTtkbCard');
+    const ttkbList = document.getElementById('specialReqTtkbList');
+    const ttkbCount = document.getElementById('specialReqTtkbCount');
+    const boCard = document.getElementById('specialReqBreakoutCard');
+    const boList = document.getElementById('specialReqBreakoutList');
+    const boCount = document.getElementById('specialReqBreakoutCount');
+    const chk = document.getElementById('specialReqAckChk');
+    const okBtn = document.getElementById('specialReqOkBtn');
+    const closeBtn = document.getElementById('specialReqClose');
+
+    if (!overlay) { resolve(true); return; }
+
+    let ttkb = [], breakout = [];
+    if (Array.isArray(groups)) {
+      ttkb = groups;
+    } else if (groups && typeof groups === 'object') {
+      ttkb = Array.isArray(groups.ttkb) ? groups.ttkb : [];
+      breakout = Array.isArray(groups.breakout) ? groups.breakout : [];
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
+      });
+    }
+    function rowHTML(text, color) {
+      return '<div style="background:#fff; border-radius:9px; padding:9px 11px; display:flex; gap:9px;">'
+           + '<i class="fas fa-check" style="font-size:14px; color:' + color + '; margin-top:2px; flex:0 0 14px;"></i>'
+           + '<span style="font-size:13px; line-height:1.45; color:#1f2937;">' + esc(text) + '</span>'
+           + '</div>';
+    }
+
+    if (nameEl) nameEl.textContent = studentName || '';
+    if (countEl) countEl.textContent = (ttkb.length + breakout.length) + ' mục';
+
+    if (ttkbList) ttkbList.innerHTML = ttkb.map(function (r) { return rowHTML(r, '#6366f1'); }).join('');
+    if (ttkbCount) ttkbCount.textContent = ttkb.length;
+    if (ttkbCard) ttkbCard.style.display = ttkb.length ? 'block' : 'none';
+
+    if (boList) boList.innerHTML = breakout.map(function (r) { return rowHTML(r, '#0ea5e9'); }).join('');
+    if (boCount) boCount.textContent = breakout.length;
+    if (boCard) boCard.style.display = breakout.length ? 'block' : 'none';
+
+    if (chk) chk.checked = false;
+    if (okBtn) { okBtn.disabled = true; okBtn.style.opacity = '0.5'; okBtn.style.cursor = 'not-allowed'; }
+
+    overlay.style.display = 'flex';
+
+    function onChk() {
+      if (!okBtn) return;
+      okBtn.disabled = !chk.checked;
+      okBtn.style.opacity = chk.checked ? '1' : '0.5';
+      okBtn.style.cursor = chk.checked ? 'pointer' : 'not-allowed';
+    }
+    function cleanup() {
+      overlay.style.display = 'none';
+      if (chk) chk.removeEventListener('change', onChk);
+      if (okBtn) okBtn.removeEventListener('click', onOk);
+      if (closeBtn) closeBtn.removeEventListener('click', onClose);
+    }
+    function onOk() {
+      if (chk && !chk.checked) return;
+      cleanup();
+      resolve(true);
+    }
+    function onClose() { cleanup(); resolve(false); }
+
+    if (chk) chk.addEventListener('change', onChk);
+    if (okBtn) okBtn.addEventListener('click', onOk);
+    if (closeBtn) closeBtn.addEventListener('click', onClose);
+  });
+}
+
+async function maybeShowSpecialReqForEmail(email, studentName) {
+  // Returns true if it is OK to proceed (student has no requirements, OR the
+  // teacher ticked the box and confirmed). Returns false ONLY if the teacher
+  // closed the popup without confirming -> caller should cancel the join.
+  if (!email) return true;
+  try {
+    const res = await fetch('/api/check-special-requirements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentEmails: [email] })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const info = data[email];
+      if (info && info.hasRequirements) {
+        return await showSpecialRequirements(studentName, {
+          ttkb: Array.isArray(info.ttkb) ? info.ttkb : (Array.isArray(info.requirements) ? info.requirements : []),
+          breakout: Array.isArray(info.breakout) ? info.breakout : []
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Special requirements check error:', e);
+  }
+  return true;
 }
 
 // Show the short-report popup and return { ok, text }
