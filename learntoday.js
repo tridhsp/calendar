@@ -2798,6 +2798,9 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
             const reqAcknowledged = await maybeShowSpecialReqForEmail(studentEmail, name);
             if (!reqAcknowledged) { e.target.checked = false; return; }
 
+            // NEW: Test_Prep notice for Breakout teachers (info only — click to continue)
+            await maybeShowTestPrepForEmail(studentEmail, name);
+
             const { ok, imageUrl } = await showConfirm(name);
             if (!ok) { e.target.checked = false; return; }
 
@@ -3038,6 +3041,78 @@ async function maybeShowSpecialReqForEmail(email, studentName) {
     console.error('Special requirements check error:', e);
   }
   return true;
+}
+
+// ===== Test_Prep notice (luyện thi) — shown when marking a Test_Prep student joined =====
+// Info popup only. Teacher clicks "Đã hiểu" to continue; it never blocks the join.
+async function maybeShowTestPrepForEmail(email, studentName) {
+  if (!email) return;
+  try {
+    const res = await fetch('/api/check-special-requirements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentEmails: [email] })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const info = data[email];
+      if (info && info.isTestPrep) {
+        await showTestPrepNotice(
+          studentName,
+          'HV đang trong quá trình luyện thi, GV Breakout hãy yêu cầu HV làm Mock test và sau đó chấm điểm Mock test cho HV.'
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Test_Prep check error:', e);
+  }
+}
+
+// Small self-contained info popup (no HTML changes needed). Resolves when closed.
+function showTestPrepNotice(studentName, message) {
+  return new Promise(function (resolve) {
+    let overlay = document.getElementById('testPrepOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'testPrepOverlay';
+      overlay.style.cssText = 'display:none; position:fixed; inset:0; z-index:10002; background:rgba(15,23,42,0.55); align-items:center; justify-content:center; padding:16px;';
+      overlay.innerHTML =
+        '<div role="alertdialog" aria-modal="true" style="max-width:420px; width:100%; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.3);">'
+        + '<div style="background:linear-gradient(135deg,#6366f1,#4338ca); padding:18px 20px; display:flex; align-items:center; gap:12px;">'
+        +   '<div style="flex:0 0 44px; width:44px; height:44px; border-radius:12px; background:rgba(255,255,255,0.22); display:flex; align-items:center; justify-content:center;">'
+        +     '<i class="fas fa-graduation-cap" style="font-size:21px; color:#fff;"></i>'
+        +   '</div>'
+        +   '<div style="flex:1; min-width:0;">'
+        +     '<p style="margin:0; font-size:12px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:rgba(255,255,255,.85);">HV luyện thi</p>'
+        +     '<p id="testPrepName" style="margin:2px 0 0; font-size:16px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></p>'
+        +   '</div>'
+        + '</div>'
+        + '<div style="padding:18px 20px;">'
+        +   '<p id="testPrepMsg" style="margin:0 0 16px; font-size:14px; line-height:1.55; color:#1f2937;"></p>'
+        +   '<button id="testPrepOkBtn" type="button" style="width:100%; background:linear-gradient(135deg,#6366f1,#4338ca); border:none; color:#fff; padding:12px; border-radius:12px; font-weight:600; cursor:pointer;">Đã hiểu</button>'
+        + '</div>'
+        + '</div>';
+      document.body.appendChild(overlay);
+    }
+
+    const nameEl = overlay.querySelector('#testPrepName');
+    const msgEl = overlay.querySelector('#testPrepMsg');
+    const okBtn = overlay.querySelector('#testPrepOkBtn');
+    if (nameEl) nameEl.textContent = studentName || '';
+    if (msgEl) msgEl.textContent = message || '';
+
+    function cleanup() {
+      overlay.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      overlay.removeEventListener('click', onBackdrop);
+    }
+    function onOk() { cleanup(); resolve(true); }
+    function onBackdrop(e) { if (e.target === overlay) { cleanup(); resolve(true); } }
+
+    okBtn.addEventListener('click', onOk);
+    overlay.addEventListener('click', onBackdrop);
+    overlay.style.display = 'flex';
+  });
 }
 
 // Show the short-report popup and return { ok, text }
