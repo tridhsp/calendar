@@ -1072,7 +1072,7 @@ a.breakout-tag:hover { text-decoration: underline; }
 
 
     <!-- NEW: external JS file -->
-    <script src="learntoday.js?v=20260615_1006_2153_1514" defer></script>
+    <script src="learntoday.js?v=testprep_20260623" defer></script>
 
 
 
@@ -1168,130 +1168,6 @@ a.breakout-tag:hover { text-decoration: underline; }
 
     </div><!-- end #ltAppArea -->
 
-
-<!-- ===== Luyen thi - Mock Test popup (calendar app / learntoday) ===== -->
-<div id="luyenThiOverlay"
-  style="display:none; position:fixed; inset:0; z-index:100001;
-         background:rgba(15,12,41,0.62); backdrop-filter:blur(8px);
-         -webkit-backdrop-filter:blur(8px);
-         align-items:center; justify-content:center; padding:20px;">
-  <div id="luyenThiCard"
-    style="position:relative; width:min(468px,100%); background:#fff;
-           border-radius:26px; overflow:hidden;
-           box-shadow:0 30px 80px rgba(76,29,149,0.4), 0 10px 28px rgba(217,70,239,0.18);
-           font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-           animation:ltPop .55s cubic-bezier(.16,1,.3,1) both;">
-    <div style="position:relative; height:7px;
-                background:linear-gradient(90deg,#8b5cf6,#d946ef,#ec4899); overflow:hidden;">
-      <div style="position:absolute; top:0; left:0; width:38%; height:100%;
-                  background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);
-                  animation:ltShimmer 2.8s ease-in-out infinite;"></div>
-    </div>
-    <div style="padding:30px 30px 26px; text-align:center;">
-      <div style="position:relative; width:84px; height:84px; margin:2px auto 16px;">
-        <div style="position:absolute; inset:-12px; border-radius:50%;
-                    background:radial-gradient(circle,rgba(217,70,239,0.30) 0%,rgba(217,70,239,0) 70%);
-                    animation:ltHalo 2.4s ease-in-out infinite;"></div>
-        <div style="position:absolute; inset:-7px; border-radius:50%;
-                    border:2px dashed rgba(139,92,246,0.45);
-                    animation:ltSpin 16s linear infinite;"></div>
-        <div style="position:relative; width:84px; height:84px; border-radius:50%;
-                    background:linear-gradient(135deg,#8b5cf6,#d946ef);
-                    display:flex; align-items:center; justify-content:center;
-                    box-shadow:0 14px 30px rgba(168,85,247,0.42), inset 0 1px 0 rgba(255,255,255,0.35);">
-          <i class="fa-solid fa-clipboard-check" style="color:#fff; font-size:2rem;"></i>
-        </div>
-      </div>
-      <div style="display:inline-flex; align-items:center; gap:7px;
-                  background:linear-gradient(135deg,#faf5ff,#fdf2f8);
-                  border:1px solid #f0abfc; color:#a21caf; font-weight:700;
-                  font-size:12px; letter-spacing:0.4px; padding:6px 14px;
-                  border-radius:999px; margin-bottom:14px;">
-        <i class="fa-solid fa-graduation-cap"></i> CH&#7870; &#272;&#7896; LUY&#7878;N THI
-      </div>
-      <div style="font-size:1.5rem; font-weight:800; color:#1e1b4b; margin:0 0 8px;
-                  letter-spacing:-0.02em; line-height:1.25;">
-        H&#7885;c vi&#234;n c&#7847;n l&#224;m Mock Test
-      </div>
-      <p style="color:#79768f; font-size:0.95rem; font-weight:500; margin:0 0 20px; line-height:1.6;">
-        H&#7885;c vi&#234;n &#273;ang trong qu&#225; tr&#236;nh luy&#7879;n thi. GV Breakout vui l&#242;ng th&#7921;c hi&#7879;n 2 b&#432;&#7899;c sau:
-      </p>
-      <div style="text-align:left; display:flex; flex-direction:column; gap:10px; margin-bottom:22px;">
-        <div style="display:flex; align-items:center; gap:13px; background:#faf5ff;
-                    border:1px solid #f3e8ff; border-radius:16px; padding:13px 15px;">
-          <div style="flex-shrink:0; width:34px; height:34px; border-radius:50%;
-                      background:linear-gradient(135deg,#8b5cf6,#a855f7); color:#fff;
-                      font-weight:800; font-size:1rem; display:flex; align-items:center;
-                      justify-content:center; box-shadow:0 5px 12px rgba(139,92,246,0.4);">1</div>
-          <div style="font-size:0.95rem; color:#3b0764; font-weight:600; line-height:1.45;">
-            Y&#234;u c&#7847;u HV l&#224;m <strong style="color:#7c3aed;">Mock test</strong>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:13px; background:#fdf2f8;
-                    border:1px solid #fce7f3; border-radius:16px; padding:13px 15px;">
-          <div style="flex-shrink:0; width:34px; height:34px; border-radius:50%;
-                      background:linear-gradient(135deg,#d946ef,#ec4899); color:#fff;
-                      font-weight:800; font-size:1rem; display:flex; align-items:center;
-                      justify-content:center; box-shadow:0 5px 12px rgba(217,70,239,0.4);">2</div>
-          <div style="font-size:0.95rem; color:#831843; font-weight:600; line-height:1.45;">
-            Ch&#7845;m &#273;i&#7875;m <strong style="color:#be185d;">Mock test</strong> cho HV
-          </div>
-        </div>
-      </div>
-      <button id="luyenThiOkBtn" type="button"
-        style="width:100%; border:none; cursor:pointer;
-               background:linear-gradient(135deg,#8b5cf6,#d946ef); color:#fff;
-               font-family:inherit; font-weight:700; font-size:1rem; padding:14px;
-               border-radius:14px; box-shadow:0 10px 24px rgba(168,85,247,0.42);
-               display:flex; align-items:center; justify-content:center; gap:8px;
-               transition:all .18s ease;">
-        <i class="fa-solid fa-circle-check"></i> &#272;&#227; hi&#7875;u, b&#7855;t &#273;&#7847;u
-      </button>
-      <button id="luyenThiScoreBtn" type="button"
-        style="width:100%; margin-top:9px; border:1.5px solid #e9d5ff; cursor:pointer;
-               background:#fff; color:#7c3aed; font-family:inherit; font-weight:700;
-               font-size:0.9rem; padding:11px; border-radius:14px;
-               display:flex; align-items:center; justify-content:center; gap:8px;
-               transition:all .18s ease;">
-        <i class="fa-solid fa-pen-to-square"></i> M&#7903; trang ch&#7845;m &#273;i&#7875;m
-      </button>
-    </div>
-  </div>
-</div>
-<style>
-@keyframes ltPop{0%{opacity:0;transform:translateY(16px) scale(.94)}100%{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes ltHalo{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.2);opacity:.4}}
-@keyframes ltShimmer{0%{transform:translateX(-130%)}100%{transform:translateX(340%)}}
-@keyframes ltSpin{to{transform:rotate(360deg)}}
-#luyenThiOkBtn:hover{filter:brightness(1.08); transform:translateY(-1px);}
-#luyenThiOkBtn:active{transform:scale(.98);}
-#luyenThiScoreBtn:hover{background:#faf5ff; border-color:#d8b4fe;}
-</style>
-<script>
-(function(){
-  var overlay = document.getElementById('luyenThiOverlay');
-  if (!overlay) return;
-  var _resolve = null;
-  // Returns a Promise that resolves when the teacher closes the popup,
-  // so the Join flow can wait for it. (email kept for the future "luyen thi only" rule.)
-  window.showLuyenThiMockTest = function(email){
-    window._luyenThiEmail = email || null;
-    overlay.style.display = 'flex';
-    return new Promise(function(res){ _resolve = res; });
-  };
-  function closePopup(){
-    overlay.style.display = 'none';
-    if (_resolve){ var r = _resolve; _resolve = null; r(); }
-  }
-  window.hideLuyenThiMockTest = closePopup;
-  var okBtn = document.getElementById('luyenThiOkBtn');
-  if (okBtn) okBtn.addEventListener('click', closePopup);
-  var scoreBtn = document.getElementById('luyenThiScoreBtn');
-  if (scoreBtn) scoreBtn.addEventListener('click', function(){ window.open('https://score.tansinh.info', '_blank', 'noopener'); });
-  overlay.addEventListener('click', function(e){ if (e.target === overlay) closePopup(); });
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && overlay.style.display === 'flex') closePopup(); });
-})();
-</script>
 </body>
 
 </html>

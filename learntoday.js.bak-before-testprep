@@ -2793,8 +2793,6 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
 
 
             const name = e.target.dataset.studentName || e.target.dataset.studentEmail || '';
-            // NEW: Luyen thi - Mock Test popup (immediately after toggling Join)
-            try { if (window.showLuyenThiMockTest) await window.showLuyenThiMockTest(studentEmail); } catch (_) {}
 
             // NEW: special requirements gate — teacher must read & acknowledge before joining
             const reqAcknowledged = await maybeShowSpecialReqForEmail(studentEmail, name);
@@ -3599,8 +3597,6 @@ async function addStudentAndJoin({ email, name }) {
         return;
     }
 
-    // NEW: Luyen thi - Mock Test popup (immediately after toggling Join)
-    try { if (window.showLuyenThiMockTest) await window.showLuyenThiMockTest(email); } catch (_) {}
     // Ask for meeting proof (same step as flipping the Join toggle)
     const { ok, imageUrl } = await showConfirm(name);
     if (!ok) return;
