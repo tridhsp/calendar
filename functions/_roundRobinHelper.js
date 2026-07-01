@@ -251,6 +251,26 @@ async function getStageGatedPool(email) {
     }
   }
 
+  // -- Type-coverage promotion (cross-stage) --
+  // If the current (base) stage has no usable book of a rotation type, pull the
+  // LOWEST-stage participatable book of that type from a higher stage, so the
+  // rotation always has a Main, a Short, and a Homework turn when one exists.
+  // Base-stage books with lessons left are already in activePool/usedCodes, so a
+  // type only gets pulled up once the base stage has truly run OUT of that type.
+  const ROTATION_TYPES = ['bai_hoc', 'bai_hoc_homework', 'bai_hoc_shorts'];
+  const typesInPool = new Set(activePool.map(b => bookSource(b)).filter(Boolean));
+  for (const wantType of ROTATION_TYPES) {
+    if (typesInPool.has(wantType)) continue;
+    const candidates = nonStage0
+      .filter(b => bookSource(b) === wantType && hasRemaining(b) && !usedCodes.has(b.book_code))
+      .sort((a, b) => (parseFloat(a.stage) || 0) - (parseFloat(b.stage) || 0));
+    if (candidates.length > 0) {
+      activePool.push(candidates[0]);
+      usedCodes.add(candidates[0].book_code);
+      typesInPool.add(wantType);
+      console.log(`[RR] Type-coverage: promoted stage ${candidates[0].stage} ${wantType} book "${candidates[0].book_name}"`);
+    }
+  }
   return { activePool: await appendThcsAutoBook(sb, email, activePool), stage0Books: stage0, sb };
 }
 

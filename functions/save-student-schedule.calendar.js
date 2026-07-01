@@ -55,7 +55,7 @@ try {
         // 1) Load existing rows for this student
         const { data: existing, error: selErr } = await supabase
             .from('student_schedule')
-            .select('id, day_of_week, time_local, buoi_phu, timezone, teacher_email, assigned_teacher_id')
+            .select('id, day_of_week, time_local, buoi_phu, timezone, teacher_email, assigned_teacher_id, sessions_per_day')
             .eq('student_email', studentEmail);
 
         if (selErr) throw selErr;
@@ -65,6 +65,7 @@ try {
             day_of_week: Number(r.day_of_week),
             time_local: String(r.time_local),
             buoi_phu: !!r.buoi_phu,
+            sessions_per_day: Math.max(1, Number(r.sessions_per_day) || 1),
             timezone: r.timezone || tz
         }));
 
@@ -87,6 +88,24 @@ try {
             updatedTz = unchangedNeedingTz.length;
         }
 
+        // 3b) Unchanged slot but the number (sessions_per_day) changed -> update
+        //     just the number. sessions_per_day is intentionally NOT part of keyOf,
+        //     so a number-only change looks "unchanged" here; we sync it without
+        //     deleting/recreating the row, so any teacher assignment is preserved.
+        let numberUpdated = 0;
+        for (const r of existingArr) {
+            if (!desiredByKey.has(keyOf(r))) continue;
+            const want = desiredByKey.get(keyOf(r));
+            if (Number(r.sessions_per_day) !== Number(want.sessions_per_day)) {
+                const { error: nErr } = await supabase
+                    .from('student_schedule')
+                    .update({ sessions_per_day: want.sessions_per_day })
+                    .eq('id', r.id);
+                if (nErr) throw nErr;
+                numberUpdated++;
+            }
+        }
+
         // 4) Moves (same day & buoi_phu, time changed)
         const timeChangedDesired = desiredArr.filter(r => !existingByKey.has(keyOf(r)));
         const oldNotKept = existingArr.filter(r => !desiredByKey.has(keyOf(r)));
@@ -99,7 +118,7 @@ try {
                 .sort((a, b) => Math.abs(timeToMin(a.time_local) - timeToMin(want.time_local)) - Math.abs(timeToMin(b.time_local) - timeToMin(want.time_local)));
             if (candidates[0]) {
                 usedOldIds.add(candidates[0].id);
-                toMove.push({ id: candidates[0].id, newTime: want.time_local });
+                toMove.push({ id: candidates[0].id, newTime: want.time_local, n: want.sessions_per_day });
             }
         }
 
@@ -107,7 +126,7 @@ try {
         for (const m of toMove) {
             const { error: mvErr } = await supabase
                 .from('student_schedule')
-                .update({ time_local: m.newTime, timezone: tz })
+                .update({ time_local: m.newTime, timezone: tz, sessions_per_day: m.n })
                 .eq('id', m.id);
             if (mvErr) throw mvErr;
             // keep in-memory data in sync after move
@@ -128,7 +147,7 @@ try {
             if (sameSlot) {
                 const { error: tgErr } = await supabase
                     .from('student_schedule')
-                    .update({ buoi_phu: want.buoi_phu, timezone: tz })
+                    .update({ buoi_phu: want.buoi_phu, timezone: tz, sessions_per_day: want.sessions_per_day })
                     .eq('id', sameSlot.id);
                 if (tgErr) throw tgErr;
 
@@ -185,7 +204,7 @@ try {
             inserted = toInsert.length;
         }
 
-        return res.status(200).json({ ok: true, updatedTz, moved, inserted, deleted, toggled });
+        return res.status(200).json({ ok: true, updatedTz, moved, inserted, deleted, toggled, numberUpdated });
     } catch (err) {
         return res.status(500).json({ ok: false, error: String(err?.message || err) });
     }

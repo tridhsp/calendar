@@ -111,6 +111,7 @@ require("./routes/check-task-limit.realtimereport")(app);
 require("./routes/check-task-validity.realtimereport")(app);
 require("./routes/check-ttkb-limits.realtimereport")(app);
 require("./routes/check-schedule-day.realtimereport")(app);
+require("./routes/get-makeup-days.realtimereport")(app);
 require("./routes/check-shift-permission.realtimereport")(app);
 require("./routes/check-knowledge-quiz.realtimereport")(app);
 require("./routes/check-overdue-duties.realtimereport")(app);
@@ -407,6 +408,7 @@ require("./routes/glv-add-deduction-comment.giolamviec")(app);
 require("./routes/glv-update-granted.giolamviec")(app);
 require("./routes/glv-update-meeting-link.giolamviec")(app);
 require("./routes/glv-add-card-comment.giolamviec")(app);
+require('./routes/glv-presign-wasabi.giolamviec')(app);
 require("./routes/glv-delete-card-comment.giolamviec")(app);
 require("./routes/glv-get-card-comments.giolamviec")(app);
 require("./routes/glv-get-card-comments-batch.giolamviec")(app);
@@ -943,6 +945,10 @@ require('./routes/pdf-ds-mark.pdfviewer.js')(app);
 require('./routes/pdf-answer-key-text-save.pdfviewer.js')(app);
 require('./routes/pdf-answer-key-text-get.pdfviewer.js')(app);
 // REMOVED (pdf-mark.pdfviewer.js was never created): require('./routes/pdf-mark.pdfviewer.js')(app);
+// --- Test_Prep no-score check (calendar / learntoday) ---
+require("./routes/learn-testprep-status.calendar")(app);
+require("./routes/learn-testprep-noscore.calendar")(app);
+require('./routes/cal-student-quota.calendar.js')(app);
 app.listen(PORT, () => {
   console.log('API server running on port ' + PORT);
 });

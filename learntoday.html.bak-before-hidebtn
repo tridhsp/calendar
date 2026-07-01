@@ -1336,7 +1336,7 @@ a.breakout-tag:hover { text-decoration: underline; }
 
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button id="tpNoScoreClose" type="button"
-          style="display:none; flex:0 0 auto; border:1.5px solid #e9d5ff; cursor:pointer; background:#fff; color:#7c3aed;
+          style="flex:0 0 auto; border:1.5px solid #e9d5ff; cursor:pointer; background:#fff; color:#7c3aed;
                  font-family:inherit; font-weight:700; font-size:0.95rem; padding:12px 18px; border-radius:13px;">
           Để sau
         </button>

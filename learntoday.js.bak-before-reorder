@@ -2465,9 +2465,6 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
             const name = btn.dataset.studentName || btn.dataset.studentEmail || '';
             const email = btn.dataset.studentEmail || '';
 
-            // Test_Prep: ask why this learner was not scored today FIRST (before the assessment popup).
-            await maybePromptTestPrepNoScore(email, name).catch(function () {});
-
             // Ask for brief teacher comment about the student
             const { ok, comment } = await showCompleteProof(name);
             if (!ok) return;
@@ -2546,6 +2543,8 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
 
                 // Cross-tab: tell other tabs a COMPLETE happened
                 if (window.ltSend) ltSend({ type: 'completed', email });
+                // Test_Prep: if this learner was not scored today, ask the teacher why (non-blocking).
+                maybePromptTestPrepNoScore(email, name, completedBy).catch(function () {});
 
 
                 // Keep grid tidy

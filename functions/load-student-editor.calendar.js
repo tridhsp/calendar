@@ -32,7 +32,7 @@ try {
 
     const { data: scheds, error: sErr } = await supabase
       .from('student_schedule')
-      .select('day_of_week, time_local, buoi_phu')
+      .select('day_of_week, time_local, buoi_phu, sessions_per_day')
       .eq('student_email', email)
       .order('day_of_week', { ascending: true })
       .order('time_local', { ascending: true });

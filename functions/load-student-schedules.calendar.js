@@ -23,7 +23,7 @@ try {
     // 1) Schedules
     const { data: scheds, error: sErr } = await supabase
       .from('student_schedule')
-      .select('id, student_email, day_of_week, time_local, timezone, assigned_teacher_id, teacher_email, breakout_email, buoi_phu');
+      .select('id, student_email, day_of_week, time_local, timezone, assigned_teacher_id, teacher_email, breakout_email, buoi_phu, sessions_per_day');
     if (sErr) throw sErr;
 
     // 2) Students (status + display name)
