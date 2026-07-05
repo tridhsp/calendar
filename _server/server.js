@@ -914,6 +914,7 @@ require('./routes/pdf-lookup.pdfviewer.js')(app);
 require('./routes/pdf-am-i-admin.pdfviewer.js')(app);
 require('./routes/pdf-save.pdfviewer.js')(app);
 require('./routes/pdf-list.pdfviewer.js')(app);
+require('./routes/pdf-set-lock.pdfviewer.js')(app);
 require('./routes/pdf-file.pdfviewer.js')(app);
 require('./routes/pdf-download-url.pdfviewer.js')(app);
 require('./routes/pdf-media-presigned-url.pdfviewer.js')(app);
