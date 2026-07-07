@@ -108,6 +108,7 @@ require("./routes/get-video-durations.realtimereport")(app);
 require("./routes/check-start-work.realtimereport")(app);
 // --- RealtimeReport Batch 2 ---
 require("./routes/check-task-limit.realtimereport")(app);
+require("./routes/check-slhv-condition.realtimereport")(app);
 require("./routes/check-task-validity.realtimereport")(app);
 require("./routes/check-ttkb-limits.realtimereport")(app);
 require("./routes/check-schedule-day.realtimereport")(app);
@@ -126,6 +127,7 @@ require("./routes/get-today-links.realtimereport")(app);
 require("./routes/get-admin-month-data.realtimereport")(app);
 require("./routes/grant-extra-session.realtimereport")(app);
 require("./routes/create-task.realtimereport")(app);
+require("./routes/get-minor-students.realtimereport")(app);
 require("./routes/create-admin-task.realtimereport")(app);
 require("./routes/create-ttkb.realtimereport")(app);
 require("./routes/save-start-work.realtimereport")(app);
