@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32"
         href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css?v=20260615_1006_2153_1514" />
+    <link rel="stylesheet" href="./style.css?v=20260707_2120_1006_2153_1514" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
 
@@ -1372,8 +1372,16 @@
                 if (msgEl) { msgEl.textContent = ''; msgEl.className = ''; }
 
                 if (!client) {
-                    if (msgEl) msgEl.textContent = 'Supabase đang khởi tạo, vui lòng đợi…';
-                    return;
+                    if (msgEl) msgEl.textContent = 'Đang kết nối, vui lòng đợi…';
+                    const _tsWaitStart = Date.now();
+                    while (!client && Date.now() - _tsWaitStart < 5000) {
+                        await new Promise((r) => setTimeout(r, 200));
+                    }
+                    if (!client) {
+                        if (msgEl) msgEl.textContent = 'Không kết nối được máy chủ, vui lòng tải lại trang.';
+                        return;
+                    }
+                    if (msgEl) msgEl.textContent = '';
                 }
 
                 const email = (document.getElementById('email')?.value || '').trim();

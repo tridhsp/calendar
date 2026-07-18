@@ -64,7 +64,13 @@ function setupLoginHandler() {
   const btn = document.getElementById('login'); if (!btn) return;
   const submit = async () => {
     const msgEl = document.getElementById('message'); msgEl.textContent = '';
-    if (!client) { msgEl.textContent = 'Supabase đang khởi tạo, vui lòng đợi…'; return; }
+    if (!client) {
+      msgEl.textContent = 'Đang kết nối, vui lòng đợi…';
+      const _tsWaitStart = Date.now();
+      while (!client && Date.now() - _tsWaitStart < 5000) { await new Promise((r) => setTimeout(r, 200)); }
+      if (!client) { msgEl.textContent = 'Không kết nối được máy chủ, vui lòng tải lại trang.'; return; }
+      msgEl.textContent = '';
+    }
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     if (!email || !password) { msgEl.textContent = 'Vui lòng điền đầy đủ thông tin.'; msgEl.className = 'error'; return; }

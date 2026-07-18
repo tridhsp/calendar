@@ -395,6 +395,159 @@ function computeLimitMins(email, byStudent, hvByEmail, perStudent) {
 }
 
 
+/* ===== Minimum-learning-time gate (Complete flow) =====
+   Main day  -> student's `min` (from danh_sach_hv)
+   Extra day -> fixed 25 minutes (any buoi_phu slot today)
+   Fires a warning popup when used time is below the minimum. */
+
+// Minutes the student has actually learned so far (live stopwatch, else the Time-used clock).
+// Returns null when we truly can't tell, so the gate can skip instead of firing falsely.
+function getUsedMinutesLT(email) {
+    try {
+        const rec = STOPWATCHES.get(email);
+        if (rec && Number.isFinite(rec.startMs)) return (Date.now() - rec.startMs) / 60000;
+    } catch (_) { }
+    const el = document.getElementById(`tu_${email}`);
+    if (el && /\d/.test(el.textContent || '')) {
+        const p = String(el.textContent).split(':').map(Number);
+        if (p.length === 3 && p.every(Number.isFinite)) return (p[0] * 3600 + p[1] * 60 + p[2]) / 60;
+    }
+    return null;
+}
+
+// The minimum minutes this student must learn today. 0 = no minimum to enforce.
+async function getMinTimeMins(email) {
+    const st = window._ltState || {};
+    const byStudent = st.byStudent || new Map();
+    // Extra day (buổi phụ) -> fixed 25 minutes
+    const hasExtra = (byStudent.get(email) || []).some(s => s && s.buoi_phu === true);
+    if (hasExtra) return 25;
+    // Main day -> student's `min` from danh_sach_hv (prefer boot data, else look it up)
+    let m = Number(st.hvByEmail && st.hvByEmail.get(email) ? st.hvByEmail.get(email).min : NaN);
+    if (!Number.isFinite(m) || m <= 0) {
+        try {
+            const { data } = await client.from('danh_sach_hv').select('min').eq('email', email).maybeSingle();
+            m = Number(data && data.min);
+        } catch (_) { }
+    }
+    return (Number.isFinite(m) && m > 0) ? m : 0;
+}
+
+// Nicely-designed Vietnamese warning popup. Resolves true = complete anyway, false = keep learning.
+function showMinTimeWarning({ name, usedMins, minMins, isExtra }) {
+    return new Promise(resolve => {
+        const used = Math.max(0, Math.floor(Number(usedMins) || 0));
+        const need = Math.max(0, Math.floor(Number(minMins) || 0));
+        const pct = need > 0 ? Math.min(100, Math.round((used / need) * 100)) : 0;
+        const sessionLabel = isExtra ? 'buổi học phụ' : 'buổi học chính';
+
+        let ov = document.getElementById('minTimeWarnOverlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'minTimeWarnOverlay';
+            ov.style.cssText = 'display:none; position:fixed; inset:0; z-index:100003;' +
+                'background:rgba(15,12,41,0.62); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);' +
+                "align-items:center; justify-content:center; padding:20px;" +
+                "font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;";
+            ov.innerHTML =
+                '<div style="position:relative; width:min(480px,100%); background:#fff; border-radius:24px; overflow:hidden;' +
+                'box-shadow:0 30px 80px rgba(146,64,14,0.34), 0 10px 28px rgba(249,115,22,0.20);">' +
+                '<div style="height:7px; background:linear-gradient(90deg,#f59e0b,#fb923c,#ef4444);"></div>' +
+                '<div style="padding:26px 26px 24px;">' +
+                '<div style="display:flex; align-items:center; gap:13px; margin-bottom:14px;">' +
+                '<div style="flex:0 0 50px; width:50px; height:50px; border-radius:14px;' +
+                'background:linear-gradient(135deg,#f59e0b,#f97316); color:#fff;' +
+                'display:flex; align-items:center; justify-content:center;' +
+                'box-shadow:0 8px 18px rgba(249,115,22,0.42);">' +
+                '<i class="fa-solid fa-hourglass-half" style="font-size:1.4rem;"></i>' +
+                '</div>' +
+                '<div>' +
+                '<div style="font-size:1.18rem; font-weight:800; color:#7c2d12; line-height:1.25;">HV chưa học đủ thời gian tối thiểu</div>' +
+                '<div id="mtwName" style="font-size:0.9rem; color:#c2410c; font-weight:600; margin-top:2px;"></div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:14px; padding:14px 15px; margin-bottom:14px;">' +
+                '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">' +
+                '<span style="font-size:0.85rem; font-weight:700; color:#9a3412;">Đã học</span>' +
+                '<span id="mtwUsed" style="font-size:1.05rem; font-weight:800; color:#ea580c;"></span>' +
+                '</div>' +
+                '<div style="height:10px; border-radius:999px; background:#ffedd5; overflow:hidden;">' +
+                '<div id="mtwBar" style="height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#f59e0b,#f97316); transition:width .4s ease;"></div>' +
+                '</div>' +
+                '<div style="display:flex; justify-content:flex-end; margin-top:6px;">' +
+                '<span id="mtwNeed" style="font-size:0.8rem; font-weight:600; color:#9a3412;"></span>' +
+                '</div>' +
+                '</div>' +
+
+                '<p id="mtwMsg" style="color:#4b4763; font-size:0.95rem; line-height:1.6; margin:0 0 10px;"></p>' +
+                '<p style="color:#4b4763; font-size:0.95rem; line-height:1.6; margin:0 0 10px;">' +
+                'Nếu HV đã hoàn thành tất cả các kỹ năng, HV có thể học thêm <b>một hoặc hai bài</b> nữa cho đủ thời gian.' +
+                '</p>' +
+                '<p style="color:#7c2d12; font-size:0.92rem; line-height:1.6; margin:0 0 18px;' +
+                'background:#fff7ed; border-left:4px solid #f97316; border-radius:0 10px 10px 0; padding:10px 13px;">' +
+                '<i class="fa-solid fa-circle-info" style="color:#f97316; margin-right:6px;"></i>' +
+                'Phụ huynh yêu cầu HV cần hoàn thành <b>ít nhất thời gian học tối thiểu</b> trước khi kết thúc một ngày học.' +
+                '</p>' +
+
+                '<div style="display:flex; gap:10px;">' +
+                '<button id="mtwKeep" type="button"' +
+                ' style="flex:1; border:none; cursor:pointer; background:linear-gradient(135deg,#f59e0b,#f97316);' +
+                ' color:#fff; font-family:inherit; font-weight:700; font-size:0.95rem; padding:13px;' +
+                ' border-radius:13px; box-shadow:0 10px 24px rgba(249,115,22,0.42);' +
+                ' display:flex; align-items:center; justify-content:center; gap:8px;">' +
+                '<i class="fa-solid fa-book-open-reader"></i> Để HV học thêm' +
+                '</button>' +
+                '<button id="mtwAnyway" type="button"' +
+                ' style="flex:0 0 auto; border:1.5px solid #fed7aa; cursor:pointer; background:#fff; color:#c2410c;' +
+                ' font-family:inherit; font-weight:700; font-size:0.9rem; padding:13px 16px; border-radius:13px;">' +
+                'Vẫn hoàn thành' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+            document.body.appendChild(ov);
+        }
+
+        const nameEl = ov.querySelector('#mtwName');
+        const usedEl = ov.querySelector('#mtwUsed');
+        const needEl = ov.querySelector('#mtwNeed');
+        const barEl = ov.querySelector('#mtwBar');
+        const msgEl = ov.querySelector('#mtwMsg');
+        const keepBtn = ov.querySelector('#mtwKeep');
+        const anywayBtn = ov.querySelector('#mtwAnyway');
+
+        if (nameEl) nameEl.textContent = name || '';
+        if (usedEl) usedEl.textContent = used + ' phút';
+        if (needEl) needEl.textContent = 'Tối thiểu ' + need + ' phút';
+        if (barEl) barEl.style.width = pct + '%';
+        if (msgEl) msgEl.innerHTML =
+            'HV <b>' + escapeHtml(name || '') + '</b> hiện mới học được <b>' + used +
+            ' phút</b>, chưa đạt thời gian học tối thiểu là <b>' + need + ' phút</b> cho ' + sessionLabel + '.';
+
+        const finish = (val) => {
+            ov.style.display = 'none';
+            if (keepBtn) keepBtn.removeEventListener('click', onKeep);
+            if (anywayBtn) anywayBtn.removeEventListener('click', onAnyway);
+            ov.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+            resolve(val);
+        };
+        const onKeep = () => finish(false);
+        const onAnyway = () => finish(true);
+        const onBackdrop = (e) => { if (e.target === ov) finish(false); };
+        const onKey = (e) => { if (e.key === 'Escape') finish(false); };
+
+        if (keepBtn) keepBtn.addEventListener('click', onKeep);
+        if (anywayBtn) anywayBtn.addEventListener('click', onAnyway);
+        ov.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+
+        ov.style.display = 'flex';
+    });
+}
+
+
 
 // Current time (minutes) in Bangkok
 function getBangkokNowMinutes() {
@@ -2465,6 +2618,18 @@ ${hasMakeup ? `<span class="makeup-badge" title="Make-up session today">Make-up 
             const name = btn.dataset.studentName || btn.dataset.studentEmail || '';
             const email = btn.dataset.studentEmail || '';
 
+            // === Minimum-learning-time gate ===
+            // Main day = student's `min`; extra day (buổi phụ) = 25 min. Warn if under the minimum.
+            try {
+                const minMins = await getMinTimeMins(email);
+                const usedMins = getUsedMinutesLT(email);
+                if (minMins > 0 && usedMins != null && usedMins < minMins) {
+                    const isExtra = ((window._ltState && window._ltState.byStudent && window._ltState.byStudent.get(email)) || []).some(s => s && s.buoi_phu === true);
+                    const proceed = await showMinTimeWarning({ name, usedMins, minMins, isExtra });
+                    if (!proceed) return; // teacher chose to let the student keep learning
+                }
+            } catch (_) { /* never block completion on a gate error */ }
+
             // Test_Prep: ask why this learner was not scored today FIRST (before the assessment popup).
             await maybePromptTestPrepNoScore(email, name).catch(function () {});
 
@@ -3539,8 +3704,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             if (!client) {
-                if (msgEl) { msgEl.textContent = 'Đang khởi tạo, vui lòng đợi…'; }
-                return;
+                if (msgEl) { msgEl.textContent = 'Đang kết nối, vui lòng đợi…'; }
+                const _tsWaitStart = Date.now();
+                while (!client && Date.now() - _tsWaitStart < 5000) {
+                    await new Promise((r) => setTimeout(r, 200));
+                }
+                if (!client) {
+                    if (msgEl) { msgEl.textContent = 'Không kết nối được máy chủ, vui lòng tải lại trang.'; }
+                    return;
+                }
+                if (msgEl) { msgEl.textContent = ''; }
             }
 
             const { error } = await client.auth.signInWithPassword({ email, password });

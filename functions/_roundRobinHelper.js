@@ -565,6 +565,19 @@ async function getRoundRobinStatus(email) {
 async function markBookCovered(email, stage, bookCode) {
   const sb = getSB();
 
+  // -- Duplicate-safe guard (Bug-B fix): if this book is already covered
+  // in the current trip, do NOT advance the turn again.
+  const { data: _already } = await sb
+    .from('book_round_robin')
+    .select('book_code')
+    .eq('student_email', email)
+    .eq('book_code', bookCode)
+    .maybeSingle();
+  if (_already) {
+    console.log(`[RR] duplicate mark ignored for ${email} / ${bookCode}`);
+    return { tripComplete: false, alreadyCovered: true, nextType: null };
+  }
+
   // 1) Mark book as covered
   const { error: upsertErr } = await sb.from('book_round_robin').upsert(
     { student_email: email, stage: Number(stage), book_code: bookCode },
@@ -577,14 +590,46 @@ async function markBookCovered(email, stage, bookCode) {
   }
 
   // 2) Advance the trip turn
-  const { data: tripRow } = await sb
+  let { data: tripRow } = await sb
     .from('book_round_robin_trips')
     .select('*')
     .eq('student_email', email)
     .maybeSingle();
 
   if (!tripRow || !tripRow.sequence) {
-    return { tripComplete: false, nextType: null };
+    // -- Trip auto-create: submissions made outside the student page
+    // (e.g. teacher page, before the student opened baihoc) must advance
+    // the rotation exactly the same way as in-page submissions.
+    try {
+      const { activePool } = await getStageGatedPool(email);
+      const sequence = computeWeightedSequence(activePool || []);
+      if (!sequence.length) return { tripComplete: false, nextType: null };
+      await sb.from('book_round_robin_trips').upsert(
+        { student_email: email, sequence, current_turn: 0 },
+        { onConflict: 'student_email' }
+      );
+      tripRow = { sequence, current_turn: 0 };
+      console.log(`[RR] trip auto-created on mark for ${email}: ${sequence.join(' > ')}`);
+    } catch (e) {
+      console.warn('[RR] trip auto-create failed:', (e && e.message) || e);
+      return { tripComplete: false, nextType: null };
+    }
+  }
+
+  // -- Out-of-turn safety: advance only when this book's type matches the
+  // current turn. Otherwise the covered row is recorded, and the status
+  // logic auto-skips exhausted turns later (existing behaviour).
+  let _bookType = null;
+  try {
+    const { data: _bRow } = await sb.from('lessons')
+      .select('book_type').eq('book_code', bookCode).limit(1).maybeSingle();
+    _bookType = _bRow ? (_bRow.book_type || null) : null;
+  } catch (_) {}
+  const _expected = tripRow.sequence[tripRow.current_turn || 0] || null;
+  const _actualSrc = _bookType ? (TYPE_TO_SOURCE[_bookType] || null) : null;
+  if (_expected && _actualSrc && _actualSrc !== _expected) {
+    console.log(`[RR] out-of-turn mark recorded (no advance): ${email} ${bookCode} type=${_actualSrc} expected=${_expected}`);
+    return { tripComplete: false, outOfTurn: true, nextType: _expected };
   }
 
   const newTurn = (tripRow.current_turn || 0) + 1;

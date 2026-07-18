@@ -563,6 +563,25 @@ require("./routes/frm-get-templates.forms")(app);
 require("./routes/frm-get-submissions.forms")(app);
 require("./routes/frm-delete-submission.forms")(app);
 require("./routes/frm-presign-wasabi.forms")(app);
+require("./routes/frm-get-submissions-paged.forms")(app);
+require("./routes/frm-email-suggest.forms")(app);
+require("./routes/frm-check-parent-form-week.forms")(app);
+require("./routes/frm-check-student-feedback-today.forms")(app);
+require("./routes/frm-get-submission.forms")(app);
+require("./routes/frm-get-comments-batch.forms")(app);
+require("./routes/frm-add-comment.forms")(app);
+require("./routes/frm-delete-comment.forms")(app);
+require("./routes/frm-comment-send-zalo.forms")(app);
+require("./routes/frm-comment-create-duty.forms")(app);
+require("./routes/frm-view-comments.forms")(app);
+require("./routes/frm-verify-access.forms")(app);
+require("./routes/frm-restore-template.forms")(app);
+require("./routes/frm-get-trashed-templates.forms")(app);
+require("./routes/frm-set-template-lock.forms")(app);
+require("./routes/frm-restore-template-version.forms")(app);
+require("./routes/frm-get-template-versions.forms")(app);
+require("./routes/frm-check-form-done.forms")(app);
+require("./routes/frm-teacher-pick.forms")(app);
 
 // --- Assistant Routes ---
 
@@ -933,6 +952,7 @@ require('./routes/pdf-submission-save.pdfviewer.js')(app);
 require('./routes/pdf-submission-get.pdfviewer.js')(app);
 require('./routes/pdf-search-emails.pdfviewer.js')(app);
 require('./routes/pdf-grant-attempt.pdfviewer.js')(app);
+require('./routes/pdf-grant-info.pdfviewer.js')(app);
 require('./routes/pdf-answer-image.pdfviewer.js')(app);
 require('./routes/pdf-submission-delete.pdfviewer.js')(app);
 require('./routes/pdf-submission-list.pdfviewer.js')(app);
