@@ -290,18 +290,111 @@ function openCalendarModal() {
 }
 
 
-async function openStudentEditorByEmail(email = '') {
-  try {
-    const modal = document.getElementById('calendarModal');
-    modal.hidden = false;
 
-    const nameInput = document.getElementById('studentNameInput');
-    const statusInput = document.getElementById('studentStatusInput');
-    if (nameInput) {
-      nameInput.value = email || '';
-      nameInput.dataset.userRoleEmail = email || '';
+/* === tansinh calendar-edit v1 START === */
+/* A promise-based confirm + a toast, reusing the .remove-teacher-* / .rtp-*
+   styles that showRemoveTeacherConfirm already ships, so the look matches.
+   Replaces the browser confirm()/alert() in the delete flow. */
+function tsConfirm({
+  title = 'Xác nhận',
+  message = '',
+  detail = '',
+  confirmLabel = 'Xác nhận',
+  cancelLabel = 'Huỷ',
+  icon = 'fa-circle-question',
+  danger = false
+} = {}) {
+  return new Promise((resolve) => {
+    document.getElementById('tsConfirmOverlay')?.remove();
+
+    const iconBg = danger ? '#fef2f2' : '#eff6ff';
+    const iconColor = danger ? '#dc2626' : '#2563eb';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'tsConfirmOverlay';
+    overlay.className = 'remove-teacher-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = `
+      <div class="remove-teacher-popup">
+        <div class="rtp-icon" style="background:${iconBg};color:${iconColor};">
+          <i class="fa-solid ${icon}"></i>
+        </div>
+        <h3 class="rtp-title">${title}</h3>
+        <p class="rtp-message">${message}</p>
+        ${detail ? `<p class="rtp-message" style="margin-top:-6px;font-size:.86rem;opacity:.85;">${detail}</p>` : ''}
+        <div class="rtp-actions">
+          <button type="button" class="rtp-btn rtp-btn-cancel">${cancelLabel}</button>
+          <button type="button" class="rtp-btn rtp-btn-remove">${confirmLabel}</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+
+    const prevFocus = document.activeElement;
+    const cancelBtn = overlay.querySelector('.rtp-btn-cancel');
+    const okBtn = overlay.querySelector('.rtp-btn-remove');
+    // Focus Cancel, not the destructive button - a stray Enter must not delete.
+    cancelBtn.focus();
+
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); close(false); return; }
+      if (ev.key === 'Tab') {
+        const els = [cancelBtn, okBtn];
+        const i = els.indexOf(document.activeElement);
+        ev.preventDefault();
+        els[(i + (ev.shiftKey ? els.length - 1 : 1)) % els.length].focus();
+      }
+    };
+
+    function close(result) {
+      document.removeEventListener('keydown', onKey, true);
+      overlay.classList.remove('visible');
+      setTimeout(() => overlay.remove(), 200);
+      try { prevFocus && prevFocus.focus && prevFocus.focus(); } catch (_) { }
+      resolve(result);
     }
 
+    document.addEventListener('keydown', onKey, true);
+    cancelBtn.addEventListener('click', () => close(false));
+    okBtn.addEventListener('click', () => close(true));
+    overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(false); });
+  });
+}
+
+function tsToast(message, kind = 'ok', ms = 3600) {
+  let wrap = document.querySelector('.ts-toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'ts-toast-wrap';
+    document.body.appendChild(wrap);
+  }
+  const el = document.createElement('div');
+  el.className = `ts-toast ${kind === 'error' ? 'error' : 'ok'}`;
+  el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  el.innerHTML =
+    `<i class="fa-solid ${kind === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i>` +
+    `<span></span>`;
+  el.querySelector('span').textContent = String(message || '');
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('visible'));
+  setTimeout(() => {
+    el.classList.remove('visible');
+    setTimeout(() => { el.remove(); if (!wrap.children.length) wrap.remove(); }, 220);
+  }, ms);
+}
+/* === tansinh calendar-edit v1 END === */
+
+async function openStudentEditorByEmail(email = '') {
+  const modal = document.getElementById('calendarModal');
+  const nameInput = document.getElementById('studentNameInput');
+  const statusInput = document.getElementById('studentStatusInput');
+  try {
+    // Load FIRST. Nothing on screen changes until the data is in hand, so a
+    // failed load can never leave the previous student's rows visible under a
+    // new student's email - which Save would then have written to the wrong
+    // student.
     const rsp = await fetch('/api/load-student-editor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -310,6 +403,10 @@ async function openStudentEditorByEmail(email = '') {
     const out = await rsp.json();
     if (!rsp.ok || !out?.ok) throw new Error(out?.error || 'Load failed');
 
+    if (nameInput) {
+      nameInput.value = email || '';
+      nameInput.dataset.userRoleEmail = email || '';
+    }
     if (statusInput) statusInput.value = out.status === '' ? '' : String(out.status);
 
     resetScheduleRows();
@@ -319,9 +416,16 @@ async function openStudentEditorByEmail(email = '') {
     } else {
       addScheduleRow();
     }
+
+    if (modal) modal.hidden = false;
   } catch (e) {
     console.error(e);
-    alert('Could not open editor. Check console.');
+    if (modal) modal.hidden = true;
+    try { resetScheduleRows(); } catch (_) { }
+    if (nameInput) { nameInput.value = ''; nameInput.dataset.userRoleEmail = ''; }
+    if (statusInput) statusInput.value = '';
+    if (typeof tsToast === 'function') tsToast('Không mở được trình chỉnh sửa. Vui lòng thử lại.', 'error');
+    else alert('Could not open editor. Check console.');
   }
 }
 
@@ -1137,26 +1241,11 @@ function setupBoardUI() {
     });
   }
 
-  // Show actions on hover (no CSS changes)
-  container?.addEventListener('mouseover', (e) => {
-    const card = e.target.closest('.student-card');
-    if (!card) return;
-    const actions = card.querySelector('.card-actions');
-    if (actions) {
-      actions.style.opacity = '1';
-      actions.style.transform = 'translateY(0)';
-    }
-  });
-
-  container?.addEventListener('mouseout', (e) => {
-    const card = e.target.closest('.student-card');
-    if (!card) return;
-    const actions = card.querySelector('.card-actions');
-    if (actions) {
-      actions.style.opacity = '0';
-      actions.style.transform = 'translateY(-4px)';
-    }
-  });
+  // tansinh calendar-edit v1: hover reveal is CSS-only now.
+  // mouseover/mouseout BUBBLE, so every crossing between child elements inside a
+  // card fired mouseout then mouseover and flickered the buttons. The stylesheet
+  // rule .student-card:hover .card-actions already does this correctly, and it
+  // also covers focus-within and touch. Do not reintroduce these handlers.
 
 
   container?.addEventListener('click', async (e) => {
@@ -1259,9 +1348,22 @@ function setupBoardUI() {
 
     if (delBtn) {
       const email = delBtn.dataset.studentEmail || '';
-      const sure = confirm(`Delete all schedules for "${email}"? This cannot be undone.`);
+      const card = delBtn.closest('.student-card');
+      const shownName = (card?.querySelector('.name-txt')?.textContent || '').trim() || email;
+      const slotCount = card ? card.querySelectorAll('.duo-chip').length : 0;
+
+      const sure = await tsConfirm({
+        title: 'Xoá lịch học?',
+        message: `Xoá toàn bộ lịch học của <strong>${escapeHtml(shownName)}</strong>?`,
+        detail: (slotCount ? `${slotCount} buổi học sẽ bị xoá. ` : '') + 'Thao tác này không thể hoàn tác.',
+        confirmLabel: 'Xoá lịch học',
+        cancelLabel: 'Huỷ',
+        icon: 'fa-trash',
+        danger: true
+      });
       if (!sure) return;
 
+      delBtn.disabled = true;
       try {
         const rsp = await fetch('/api/delete-student-schedules', {
           method: 'POST',
@@ -1271,11 +1373,13 @@ function setupBoardUI() {
         const out = await rsp.json();
         if (!rsp.ok || !out?.ok) throw new Error(out?.error || 'Delete failed');
 
-        alert(`Deleted ${out.deleted} schedule(s) for ${email}.`);
+        tsToast(`Đã xoá ${out.deleted} buổi học của ${shownName}.`, 'ok');
         renderCalendarBoard(true);
       } catch (err) {
         console.error(err);
-        alert(`Delete failed: ${err?.message || 'Unknown error'}`);
+        tsToast(`Xoá không thành công: ${err?.message || 'Lỗi không xác định'}`, 'error');
+      } finally {
+        delBtn.disabled = false;
       }
 
       return;
@@ -2366,21 +2470,16 @@ function renderByStudent({ students, schedules }) {
 
     return `
   <div class="student-card" style="position:relative;">
-    <div class="card-actions"
-         style="position:absolute; top:8px; right:8px; display:flex; gap:8px;
-                opacity:0; transform:translateY(-4px); transition:opacity .15s ease, transform .15s ease;
-                pointer-events:none;">
-      <button class="card-action edit"
-              style="width:34px; height:34px; display:grid; place-items:center; border:1px solid #e5e7eb;
-                     background:#fff; border-radius:10px; cursor:pointer; pointer-events:auto;"
-              title="Edit this student's schedule"
+    <div class="card-actions">
+      <button class="card-action edit" type="button"
+              title="Sửa lịch học của học viên này"
+              aria-label="Sửa lịch học"
               data-student-email="${s.email}">
         <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
       </button>
-      <button class="card-action delete"
-              style="width:34px; height:34px; display:grid; place-items:center; border:1px solid #e5e7eb;
-                     background:#fff; border-radius:10px; cursor:pointer; pointer-events:auto;"
-              title="Delete this student's schedules"
+      <button class="card-action delete" type="button"
+              title="Xoá toàn bộ lịch học của học viên này"
+              aria-label="Xoá lịch học"
               data-student-email="${s.email}">
         <i class="fa-solid fa-trash" aria-hidden="true"></i>
       </button>
