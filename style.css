@@ -4284,3 +4284,16 @@ body.app-mode {
 .ts-toast.ok    { border-color: #bbf7d0; background: #f0fdf4; color: #14532d; }
 .ts-toast.error { border-color: #fecaca; background: #fef2f2; color: #7f1d1d; }
 /* === tansinh calendar-edit v1 END === */
+
+/* === tansinh calendar-overflow v1a START === */
+/* Stopgap. The week grid is floored at ~1373px (nowrap pills under repeat(7,1fr))
+   while .schedule-section clips with overflow:hidden, so on any viewport under
+   ~1513px the edit/delete buttons and the last day column were unreachable -
+   not merely hidden, because the page had no horizontal scrollbar either.
+   Superseded by v2, which stacks the week so nothing overflows. */
+.schedule-section {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+}
+/* === tansinh calendar-overflow v1a END === */
