@@ -39,7 +39,7 @@ const TCV2 = {
 let tcv2 = {
   email: null, name: '', items: [], sel: null,
   days: new Set(), role: 'breakout',
-  day: new Date().getDay(), lastData: null,
+  day: new Date().getDay(), lastData: null, freeAt: null,
   bound: false, boardBound: false
 };
 
@@ -60,15 +60,30 @@ function tcv2NowMin() { const n = new Date(); return n.getHours() * 60 + n.getMi
 function tcv2Overlap(aS, aE, bS, bE) { return aS < bE && bS < aE; }
 
 /* booked minutes inside one range, same rule as the old board: every student
-   session that starts inside the range counts its status minutes */
+   session that starts inside the range counts its status minutes.
+   Also returns the booked intervals, clipped to the range, so they can be
+   drawn where they really are and used by the "free at" finder. */
 function tcv2Used(email, day, startMin, endMin, statusByEmail, schedules) {
-  let used = 0;
+  let used = 0; const iv = [];
   for (const sc of schedules) {
     if (sc.teacher_email !== email || sc.day_of_week !== day) continue;
     const sMin = timeToMinutes(tcv2HM(sc.time_local));
-    if (sMin >= startMin && sMin < endMin) used += Number(statusByEmail.get(sc.student_email) || 0);
+    if (sMin >= startMin && sMin < endMin) {
+      const len = Number(statusByEmail.get(sc.student_email) || 0);
+      used += len;
+      if (len > 0) iv.push([sMin, Math.min(endMin, sMin + len)]);
+    }
   }
-  return used;
+  iv.sort((a, b) => a[0] - b[0]);
+  return { used, iv };
+}
+/* minutes of a range that are NOT booked, inside [a, b) */
+function tcv2FreeIn(r, a, b) {
+  let s = Math.max(a, r.startMin), e = Math.min(b, r.endMin);
+  if (e <= s) return 0;
+  let free = e - s;
+  for (const [x, y] of r.booked) { const o = Math.min(e, y) - Math.max(s, x); if (o > 0) free -= o; }
+  return Math.max(0, free);
 }
 
 /* =====================================================================
@@ -98,6 +113,10 @@ async function tcv2SessionTeacher() {
 }
 
 function tcv2PrepModal() {
+  if (!document.getElementById('tcv2Bulk')) {
+    const wk = document.getElementById('tcv2Week');
+    if (wk) { const b = document.createElement('div'); b.id = 'tcv2Bulk'; b.className = 'tcv2-bulk'; wk.parentNode.insertBefore(b, wk.nextSibling); }
+  }
   const title = document.getElementById('teacherCalTitle');
   if (title) title.innerHTML = '<i class="fa-solid fa-chalkboard-user"></i> Add free hours';
   tcv2.items = []; tcv2.sel = null; tcv2.days = new Set(); tcv2.role = 'breakout';
@@ -139,7 +158,7 @@ async function tcv2LoadTeacher(email, name, isSelf) {
     const { ranges } = await res.json();
     tcv2.items = (ranges || []).map(r => ({
       id: r.id || null, day: Number(r.day_of_week), start: tcv2HM(r.time_start), end: tcv2HM(r.time_end),
-      role: tcv2Role(r.role), saved: true, del: false
+      role: tcv2Role(r.role), orig: tcv2Role(r.role), saved: true, del: false
     }));
     const noRole = tcv2.items.filter(it => it.role === 'none').length;
     tcv2SetMsg(noRole ? `${noRole} saved range(s) have no role yet. Click a grey block to set one.` : '', 'warn');
@@ -165,6 +184,11 @@ function tcv2RenderWeek() {
   const total = tcv2.items.filter(it => !it.del).reduce((a, it) => a + (timeToMinutes(it.end) - timeToMinutes(it.start)), 0);
   const note = document.getElementById('tcv2WkNote');
   if (note) note.textContent = `${tcv2Hours(total)} this week · solid = saved · dashed = adding now · click a block to change its role or remove it`;
+  const bulk = document.getElementById('tcv2Bulk');
+  if (bulk) {
+    const live = tcv2.items.filter(it => !it.del);
+    bulk.innerHTML = live.length ? `<span class="lbl">Set every range to</span>${TCV2.ROLES.map(r => `<button type="button" data-bulk="${r}" class="r-${r}">${TCV2.LABEL[r]}</button>`).join('')}` : '';
+  }
 }
 
 function tcv2RenderPop() {
@@ -216,7 +240,8 @@ function tcv2UpdateSave() {
   const btn = document.getElementById('teacherCalSaveBtn'); if (!btn) return;
   const fresh = tcv2.items.filter(it => !it.saved && !it.del).length;
   const gone = tcv2.items.filter(it => it.saved && it.del).length;
-  btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save' + (fresh ? ` · ${fresh} new` : '') + (gone ? ` · ${gone} removed` : '');
+  const changed = tcv2.items.filter(it => it.saved && !it.del && it.role !== it.orig).length;
+  btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save' + (fresh ? ` · ${fresh} new` : '') + (changed ? ` · ${changed} changed` : '') + (gone ? ` · ${gone} removed` : '');
 }
 
 function tcv2AddToWeek() {
@@ -267,6 +292,13 @@ function tcv2BindModal() {
     }
     const sug = e.target.closest('#teacherNameSuggestions button.suggestion');
     if (sug) { tcv2LoadTeacher(sug.dataset.email, sug.dataset.name || sug.dataset.email, false); return; }
+    const bulk = e.target.closest('#tcv2Bulk [data-bulk]');
+    if (bulk) {
+      const r = tcv2Role(bulk.dataset.bulk);
+      tcv2.items.forEach(it => { if (!it.del) it.role = r; });
+      tcv2RenderWeek(); tcv2RenderPop(); tcv2UpdateSave();
+      tcv2SetMsg(`Every range is now ${TCV2.LABEL[r]}. Press Save to keep it.`, 'ok'); return;
+    }
     const chip = e.target.closest('.tcv2-chip');
     if (chip) { const k = Number(chip.dataset.k); tcv2.sel = (tcv2.sel === k ? null : k); tcv2RenderWeek(); tcv2RenderPop(); return; }
     const pr = e.target.closest('#tcv2Pop [data-pr]');
@@ -331,10 +363,11 @@ function tcv2Prep({ teachers, ranges, statuses, schedules }) {
     let t = byTeacher.get(r.teacher_email);
     if (!t) { t = { email: r.teacher_email || 'unknown', ranges: [] }; byTeacher.set(t.email, t); }
     const startMin = timeToMinutes(tcv2HM(r.time_start)), endMin = timeToMinutes(tcv2HM(r.time_end));
+    const u = tcv2Used(t.email, Number(r.day_of_week), startMin, endMin, statusByEmail, scheds);
     t.ranges.push({
       id: r.id, day: Number(r.day_of_week), start: tcv2HM(r.time_start), end: tcv2HM(r.time_end),
       startMin, endMin, total: Math.max(0, endMin - startMin), role: tcv2Role(r.role),
-      used: tcv2Used(t.email, Number(r.day_of_week), startMin, endMin, statusByEmail, scheds)
+      used: u.used, booked: u.iv
     });
   }
   const list = [...byTeacher.values()].map(t => {
@@ -355,13 +388,20 @@ function tcv2Block(r, extra) {
   const left = tcv2Pct(a), width = Math.max(1.2, tcv2Pct(b) - left);
   const pct = r.total ? Math.max(0, Math.min(100, Math.round(r.used / r.total * 100))) : 0;
   const cut = r.startMin < TCV2.AXIS_START || r.endMin > TCV2.AXIS_END ? ' cut' : '';
+  const span = b - a;
+  const stripes = r.booked.map(([x, y]) => {
+    const xs = Math.max(a, x), ye = Math.min(b, y); if (ye <= xs) return '';
+    return `<i class="tcv2-fl" style="left:${((xs - a) / span * 100).toFixed(2)}%;width:${((ye - xs) / span * 100).toFixed(2)}%" title="booked ${tcv2Fmt(xs)}–${tcv2Fmt(ye)}"></i>`;
+  }).join('');
+  const bk = r.booked.map(([x, y]) => `${x}-${y}`).join(',');
   return `<span class="tcv2-bk r-${r.role}${cut}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%"`
-    + ` data-avail-id="${tcv2E(r.id)}" data-day="${r.day}" data-start="${r.start}" data-end="${r.end}" data-role="${r.role}" data-teacher-email="${tcv2E(extra.email)}"`
-    + ` title="${TCV2.SHORTDAY[r.day]} ${r.start}–${r.end} · ${TCV2.LABEL[r.role]} · ${r.used} / ${r.total} min booked (${pct}%)">`
-    + `<i class="tcv2-fl r-${r.role}" style="width:${pct}%"></i>${extra.text ? `<span>${extra.text}</span>` : ''}</span>`;
+    + ` data-avail-id="${tcv2E(r.id)}" data-day="${r.day}" data-start="${r.start}" data-end="${r.end}" data-role="${r.role}" data-teacher-email="${tcv2E(extra.email)}" data-s="${r.startMin}" data-e="${r.endMin}" data-b="${bk}"`
+    + ` title="${TCV2.SHORTDAY[r.day]} ${r.start}–${r.end} · ${TCV2.LABEL[r.role]} · ${r.used} / ${r.total} min booked (${pct}%)${r.booked.length ? ' · booked ' + r.booked.map(([x, y]) => tcv2Fmt(x) + '–' + tcv2Fmt(y)).join(', ') : ''}">`
+    + `${stripes}${extra.text ? `<span>${extra.text}</span>` : ''}</span>`;
 }
 
 function renderTByTeacher(data) {
+  tcv2.freeAt = null;
   const list = tcv2Prep(data);
   if (!list.length) return '<div class="tcv2-empty">No free hours saved yet. Press the calendar button at the bottom left to add some.</div>';
   const today = tcv2Today(), nowMin = tcv2NowMin();
@@ -376,7 +416,7 @@ function renderTByTeacher(data) {
       const blocks = rs.map(r => tcv2Block(r, { email: t.email })).join('');
       const cap = rs.map(r => `${tcv2Short(r.start)}–${tcv2Short(r.end)}`).join(', ');
       const isToday = d === today;
-      return `<div><div class="tcv2-tr${isToday ? ' today' : ''}"${isToday ? ` style="--now:${nowPct.toFixed(2)}%"` : ''}>${blocks}</div><p class="tcv2-cp">${cap}</p></div>`;
+      return `<div><div class="tcv2-tr${isToday ? ' today' : ''}" data-day="${d}"${isToday ? ` style="--now:${nowPct.toFixed(2)}%"` : ''}>${blocks}</div><p class="tcv2-cp">${cap}</p></div>`;
     }).join('');
     const roles = Object.keys(t.byRole).join(' ');
     return `<div class="tcv2-row" data-email="${tcv2E(t.email)}" data-n="${tcv2E(t.name.toLowerCase())}" data-r="${roles}" data-free="${t.free}" data-book="${t.booked}">`
@@ -391,13 +431,18 @@ function renderTByTeacher(data) {
   const flt = ['all', ...TCV2.ROLES, ...(anyNone ? ['none'] : [])].map(r =>
     `<span class="tcv2-tb-flt${r === 'all' ? ' on' : ''}" data-r="${r}">${r === 'all' ? '' : `<span class="tcv2-dot r-${r}"></span>`}${r === 'all' ? 'All' : TCV2.LABEL[r]}</span>`).join('');
   const dh = TCV2.ORDER.map(d => `<div class="tcv2-dh${d === today ? ' today' : ''}">${TCV2.SHORTDAY[d]}${d === today ? ' · today' : ''}</div>`).join('');
-  const ax = TCV2.ORDER.map(() => `<div class="tcv2-ax"><span style="left:0">08</span><span style="left:50%;transform:translateX(-50%)">15</span><span style="right:0">22</span></div>`).join('');
+  const hrs = [8, 10, 12, 14, 16, 18, 20, 22];
+  const ax = TCV2.ORDER.map(() => `<div class="tcv2-ax">${hrs.map((h, i) => `<span class="${i % 2 ? 'odd' : ''}" style="left:${tcv2Pct(h * 60).toFixed(2)}%">${String(h).padStart(2, '0')}</span>`).join('')}</div>`).join('');
+  const faDay = TCV2.ORDER.map(d => `<option value="${d}"${d === today ? ' selected' : ''}>${TCV2.SHORTDAY[d]}</option>`).join('');
+  const faTime = tcv2Fmt(Math.min(TCV2.AXIS_END - 60, Math.max(TCV2.AXIS_START, Math.ceil(nowMin / 60) * 60)));
 
   return `<div class="tcv2-view">`
     + `<div class="tcv2-tb"><input type="search" class="tcv2-q" placeholder="Find a teacher">${flt}`
     + `<span class="count" id="tcv2Count">${list.length} teachers · ${tcv2Hours(totalFree)} free · ${tcv2Hours(totalBooked)} booked</span>`
     + `<button type="button" class="tcv2-sort" data-mode="0"><i class="fa-solid fa-arrow-down-a-z" aria-hidden="true"></i> Sort: name</button></div>`
-    + `<p class="tcv2-legend">Light = free, dark = booked with students. Dashed line = 15:00, blue line = now. Hover a block for the minutes, click it to edit.</p>`
+    + `<div class="tcv2-tb tcv2-fa"><span class="lbl">Who is free at</span><select class="tcv2-fa-day">${faDay}</select><input type="time" class="tcv2-fa-time" step="900" value="${faTime}">`
+    + `<button type="button" class="tcv2-fa-go"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Show</button><button type="button" class="tcv2-fa-clear">Show everyone</button><span class="count tcv2-fa-out"></span></div>`
+    + `<p class="tcv2-legend">Solid colour = free. Striped = a student is already booked there. Blue line = now. Hover a block for the minutes, click it to edit.</p>`
     + `<div class="tcv2-head"><div class="tcv2-g7">${dh}</div><div class="tcv2-g7">${ax}</div></div>`
     + `<div class="tcv2-rows">${rows}</div></div>`;
 }
@@ -429,14 +474,14 @@ function renderTByDay(data) {
 
   const heat = [];
   for (let h = 8; h < 22; h++) {
-    const n = people.reduce((a, x) => a + x.rs.filter(r => tcv2Overlap(r.startMin, r.endMin, h * 60, h * 60 + 60)).length, 0);
-    heat.push(`<span class="${n >= 3 ? 'b' : n ? 'a' : ''}" title="${String(h).padStart(2, '0')}:00–${String(h + 1).padStart(2, '0')}:00: ${n} free">${n}</span>`);
+    const n = people.filter(x => x.rs.some(r => tcv2FreeIn(r, h * 60, h * 60 + 60) > 0)).length;
+    heat.push(`<span class="${n >= 3 ? 'b' : n ? 'a' : ''}" title="${String(h).padStart(2, '0')}:00–${String(h + 1).padStart(2, '0')}:00: ${n} teacher(s) with free minutes">${n}</span>`);
   }
 
   return `<div class="tcv2-view">`
     + `<div class="tcv2-daytabs">${tabs}</div>`
     + `<div class="tcv2-dayhead"><b>${weekdayLong(d)}</b><span>${people.length} teacher${people.length === 1 ? '' : 's'} free · ${tcv2Hours(free)} free · ${tcv2Hours(booked)} booked</span>`
-    + `<span style="margin-left:auto">${d === today ? 'blue line = now · ' : ''}dark = booked · click a block to edit</span></div>`
+    + `<span style="margin-left:auto">${d === today ? 'blue line = now · ' : ''}solid = free, striped = booked · click a block to edit</span></div>`
     + (people.length
       ? `<div class="tcv2-tl"><div class="tcv2-ln hdr"><span></span><div class="tcv2-hx">${hx}</div></div>`
         + `<div class="tcv2-body"><div class="tcv2-gl">${gl}</div>${lines}</div>`
@@ -448,16 +493,34 @@ function renderTByDay(data) {
 /* =====================================================================
    BOARD INTERACTIONS: filter, search, sort, day tabs, block click
    ===================================================================== */
+/* is this block free at minute m? (inside the range and not inside a booked patch) */
+function tcv2BlockFreeAt(bk, m) {
+  if (m < Number(bk.dataset.s) || m >= Number(bk.dataset.e)) return false;
+  const b = bk.dataset.b ? bk.dataset.b.split(',') : [];
+  return !b.some(p => { const [x, y] = p.split('-').map(Number); return m >= x && m < y; });
+}
+
 function tcv2ApplyFilter(root) {
   const q = (root.querySelector('.tcv2-q')?.value || '').trim().toLowerCase();
   const role = root.querySelector('.tcv2-tb-flt.on')?.dataset.r || 'all';
+  const fa = tcv2.freeAt;   // null, or { day, min }
   let n = 0, free = 0, booked = 0;
+  root.querySelectorAll('.tcv2-bk.hit').forEach(x => x.classList.remove('hit'));
+  root.querySelectorAll('.tcv2-tr.at').forEach(x => { x.classList.remove('at'); x.style.removeProperty('--at'); });
   root.querySelectorAll('.tcv2-row').forEach(row => {
-    const ok = (role === 'all' || (' ' + row.dataset.r + ' ').includes(' ' + role + ' ')) && (!q || row.dataset.n.includes(q));
+    let ok = (role === 'all' || (' ' + row.dataset.r + ' ').includes(' ' + role + ' ')) && (!q || row.dataset.n.includes(q));
+    if (ok && fa) {
+      const hits = [...row.querySelectorAll(`.tcv2-bk[data-day="${fa.day}"]`)].filter(bk => tcv2BlockFreeAt(bk, fa.min));
+      ok = hits.length > 0;
+      hits.forEach(bk => bk.classList.add('hit'));
+    }
+    if (fa) row.querySelectorAll(`.tcv2-tr[data-day="${fa.day}"]`).forEach(tr => { tr.classList.add('at'); tr.style.setProperty('--at', tcv2Pct(fa.min).toFixed(2) + '%'); });
     row.classList.toggle('hide', !ok);
     if (ok) { n++; free += Number(row.dataset.free); booked += Number(row.dataset.book); }
   });
   const c = root.querySelector('#tcv2Count'); if (c) c.textContent = `${n} teacher${n === 1 ? '' : 's'} · ${tcv2Hours(free)} free · ${tcv2Hours(booked)} booked`;
+  const out = root.querySelector('.tcv2-fa-out');
+  if (out) out.textContent = fa ? `${n} teacher${n === 1 ? '' : 's'} free ${TCV2.SHORTDAY[fa.day]} ${tcv2Fmt(fa.min)}` : '';
 }
 
 function tcv2BindBoard() {
@@ -468,6 +531,13 @@ function tcv2BindBoard() {
     if (bk) { openAvailEditor(bk); return; }
     const f = e.target.closest('.tcv2-tb-flt');
     if (f) { c.querySelectorAll('.tcv2-tb-flt').forEach(x => x.classList.remove('on')); f.classList.add('on'); tcv2ApplyFilter(c); return; }
+    if (e.target.closest('.tcv2-fa-go')) {
+      const day = Number(c.querySelector('.tcv2-fa-day')?.value), t = c.querySelector('.tcv2-fa-time')?.value;
+      if (!t) return;
+      tcv2.freeAt = { day, min: timeToMinutes(t) };
+      tcv2ApplyFilter(c); return;
+    }
+    if (e.target.closest('.tcv2-fa-clear')) { tcv2.freeAt = null; tcv2ApplyFilter(c); return; }
     const s = e.target.closest('.tcv2-sort');
     if (s) {
       const mode = (Number(s.dataset.mode || 0) + 1) % 3; s.dataset.mode = mode;
