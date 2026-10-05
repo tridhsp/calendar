@@ -9,12 +9,14 @@
   <link rel="icon" type="image/png" sizes="32x32"
     href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=20260908_1131_1119_0751_2119_2120_1006_2153_1514" />
+  <link rel="stylesheet" href="./style.css?v=20261005_2317_1131_1119_0751_2119_2120_1006_2153_1514" />
+  <link rel="stylesheet" href="./teachercalendar-v2.css?v=20261005_2317a" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <!-- Supabase + this page’s script -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
-  <script src="./teacher.js?v=20260908_1131_1119_0751_2119_2120_1006_2153_1514" defer></script>
+  <script src="./teacher.js?v=20261005_2317_1131_1119_0751_2119_2120_1006_2153_1514" defer></script>
+  <script src="./teachercalendar-v2.js?v=20261005_2317a" defer></script>
 </head>
 
 <body class="page-teacher">
@@ -71,24 +73,33 @@
       </div>
 
       <div class="modal-body">
-        <div class="grid">
-          <div class="form-group">
-            <label for="teacherNameInput">Teacher</label>
+        <!-- teachercalendar-v2 (5 Oct 2026): the add-free-hours composer. teachercalendar-v2.js fills the empty parts. -->
+        <div class="tcv2-m">
+          <div class="tcv2-for">
+            <span class="lbl">Free hours for</span>
+            <span class="tcv2-pill"><span class="tcv2-av" id="tcv2Av">?</span><span id="tcv2Who">…</span></span>
+            <button type="button" class="tcv2-link" id="tcv2ChangeBtn">Change teacher</button>
+          </div>
+          <div class="tcv2-change hidden" id="tcv2Change">
             <div class="autocomplete">
-              <input id="teacherNameInput" type="text" placeholder="Type 4+ letters to search…" autocomplete="off" />
+              <input id="teacherNameInput" type="text" placeholder="Type 4+ letters of the teacher's email…" autocomplete="off" />
               <div id="teacherNameSuggestions" class="autocomplete-list hidden"></div>
             </div>
-            <small class="tip">Suggestions from: user_roles.email</small>
+            <small class="tip">Pick a teacher from the suggestions. Their saved hours load into the week below.</small>
           </div>
+          <div class="tcv2-wkhead"><b>The week</b><small id="tcv2WkNote"></small></div>
+          <div class="tcv2-week" id="tcv2Week"></div>
+          <div class="tcv2-pop hidden" id="tcv2Pop"></div>
+          <p class="tcv2-step"><span class="tcv2-n">1</span>Days</p>
+          <div class="tcv2-days" id="tcv2Days"></div>
+          <p class="tcv2-step"><span class="tcv2-n">2</span>Time</p>
+          <div class="tcv2-time" id="tcv2Time"></div>
+          <p class="tcv2-step"><span class="tcv2-n">3</span>Register as</p>
+          <div class="tcv2-tiles" id="tcv2Tiles"></div>
+          <p class="tcv2-hint" id="tcv2Hint"></p>
+          <div class="tcv2-sum"><span class="txt" id="tcv2Sum"></span><button type="button" class="btn-outline" id="tcv2AddBtn"><i class="fa-solid fa-plus"></i> Add to week</button></div>
+          <p class="tcv2-msg" id="tcv2Msg"></p>
         </div>
-
-        <div class="section-title">Free time ranges</div>
-        <div id="teacherScheduleRows"></div>
-        <button class="btn-outline" id="addTeacherRowBtn" type="button">
-          <i class="fa-solid fa-plus"></i> Add day & time range
-        </button>
-
-        <div class="tip">Example: Mon 08:00–12:00 & 18:00–21:00</div>
       </div>
 
       <div class="modal-footer">
