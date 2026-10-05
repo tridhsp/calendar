@@ -13,7 +13,7 @@ const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL
     // Fetch availability ranges
     const { data: ranges, error: rErr } = await supabase
       .from('teacher_availability')
-      .select('id, teacher_email, teacher_name, day_of_week, time_start, time_end, timezone');
+      .select('id, teacher_email, teacher_name, day_of_week, time_start, time_end, timezone, role'); // tansinh teacher-role
 
     if (rErr) throw rErr;
 

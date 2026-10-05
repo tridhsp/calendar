@@ -16,7 +16,7 @@ const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL
 
     const { data: ranges, error } = await supabase
       .from('teacher_availability')
-      .select('day_of_week, time_start, time_end')
+      .select('id, day_of_week, time_start, time_end, role') // tansinh teacher-role
       .eq('teacher_email', teacherEmail)
       .order('day_of_week', { ascending: true })
       .order('time_start', { ascending: true });

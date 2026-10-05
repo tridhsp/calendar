@@ -1,4 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
+// === tansinh teacher-role BEGIN (5 Oct 2026) ===
+// Each free range is registered as one role. Unknown values are stored as null (= not set).
+const TEACHER_ROLES = ['breakout', 'ttkb', 'supporter', 'mix'];
+function normRole(v) { const s = String(v == null ? '' : v).trim().toLowerCase(); return TEACHER_ROLES.includes(s) ? s : null; }
+// === tansinh teacher-role END ===
 
 module.exports = function(app) {
   app.post('/update-teacher-shift', async (req, res) => {
@@ -8,7 +13,7 @@ const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL
 
 
   try {
-    const { action, availId, timeStart, timeEnd } = (req.body || {});
+    const { action, availId, timeStart, timeEnd, role } = (req.body || {}); // tansinh teacher-role
 
     if (!availId) {
       return res.status(400).json({ error: 'availId is required' });
@@ -21,7 +26,7 @@ const supabaseUrl = (process.env.SUPABASE_INTERNAL_URL||process.env.SUPABASE_URL
 
       const { error } = await supabase
         .from('teacher_availability')
-        .update({ time_start: timeStart, time_end: timeEnd })
+        .update({ time_start: timeStart, time_end: timeEnd, ...(role !== undefined ? { role: normRole(role) } : {}) }) // tansinh teacher-role
         .eq('id', availId);
 
       if (error) throw error;

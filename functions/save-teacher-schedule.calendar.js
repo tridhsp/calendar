@@ -1,5 +1,10 @@
 // Converted from netlify/functions/save-teacher-schedule.mjs (ESM -> CJS)
 const { createClient } = require('@supabase/supabase-js');
+// === tansinh teacher-role BEGIN (5 Oct 2026) ===
+// Each free range is registered as one role. Unknown values are stored as null (= not set).
+const TEACHER_ROLES = ['breakout', 'ttkb', 'supporter', 'mix'];
+function normRole(v) { const s = String(v == null ? '' : v).trim().toLowerCase(); return TEACHER_ROLES.includes(s) ? s : null; }
+// === tansinh teacher-role END ===
 
 module.exports = function(app) {
   app.post('/save-teacher-schedule', async (req, res) => {
@@ -115,6 +120,7 @@ module.exports = function(app) {
           time_start: r.time_start,
           time_end: r.time_end,
           timezone: r.timezone || 'Asia/Ho_Chi_Minh',
+          role: normRole(r.role), // tansinh teacher-role
         }));
 
       if (!payload.length) {
