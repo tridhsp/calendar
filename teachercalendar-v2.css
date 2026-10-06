@@ -340,3 +340,94 @@
   .tcv2-footnote { flex-basis: 100%; margin: 0 0 4px; }
 }
 /* === tcv2 steps END === */
+
+/* === tcv2 wizard BEGIN (6 Oct 2026) ===
+   Design B. The week is seven DAY CARDS that write every range out in words: the time in bold,
+   the role name under it in the role colour; entries being added are dashed with a "new" tag,
+   removed ones struck through. The composer asks one question per screen: big day buttons,
+   big shift buttons, four role cards; progress bars at the top right, "So far" chips you can
+   change, Back / Next / Add along the bottom. At phone width the week is two columns. */
+.tcv2-week { gap: 8px; }
+.tcv2-col { min-height: 70px; border-top: 2px solid #e2e8f0; padding: 6px 4px 2px; border-radius: 0 0 8px 8px; }
+.tcv2-col.today { border-top-color: var(--primary); }
+.tcv2-col.picked { background: #eaf3fd; border-top-color: var(--primary); }
+.tcv2-col h5 { text-align: left; margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #64748b; }
+.tcv2-col.today h5 { color: var(--primary); }
+.tcv2-col.today h5::after { content: " · today"; }
+.tcv2-col.picked h5 { color: var(--primary); }
+.tcv2-col.picked h5::after { content: " · adding"; }
+.tcv2-none { font-size: 12px; color: #94a3b8; }
+.tcv2-chip { display: block; width: 100%; box-sizing: border-box; text-align: left; border-radius: 8px; padding: 4px 6px; margin: 0 0 4px; font: inherit; line-height: 1.3; cursor: pointer; white-space: normal; overflow: visible; text-overflow: clip; background: transparent; border: 1px solid transparent; color: #0f172a; }
+.tcv2-chip.r-breakout, .tcv2-chip.r-ttkb, .tcv2-chip.r-supporter, .tcv2-chip.r-mix, .tcv2-chip.r-none { background: transparent; border-color: transparent; color: #0f172a; }
+.tcv2-chip:hover { background: #f1f5f9; }
+.tcv2-ct { display: block; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tcv2-cr { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; }
+.tcv2-chip.r-breakout .tcv2-cr  { color: #3C3489; }
+.tcv2-chip.r-ttkb .tcv2-cr      { color: #085041; }
+.tcv2-chip.r-supporter .tcv2-cr { color: #712B13; }
+.tcv2-chip.r-mix .tcv2-cr       { color: #72243E; }
+.tcv2-chip.r-none .tcv2-cr      { color: #64748b; font-style: italic; }
+.tcv2-tag { padding: 0 6px; border-radius: 999px; background: #FEF0C7; color: #93370D; font-size: 10px; font-weight: 700; font-style: normal; line-height: 1.6; }
+.tcv2-tag.del { background: #FEE4E2; color: #B42318; }
+.tcv2-chip.new { border-width: 2px; border-style: dashed; }
+.tcv2-chip.new.r-breakout  { background: #EEEDFE; border-color: #534AB7; }
+.tcv2-chip.new.r-ttkb      { background: #E1F5EE; border-color: #0F6E56; }
+.tcv2-chip.new.r-supporter { background: #FAECE7; border-color: #993C1D; }
+.tcv2-chip.new.r-mix       { background: #FBEAF0; border-color: #993556; }
+.tcv2-chip.new.r-none      { background: #f1f3f6; border-color: #9aa0a6; }
+.tcv2-wktitle b { font-size: 15px; }
+
+.tcv2-cardadd { gap: 12px; }
+.tcv2-addhead { align-items: center; }
+.tcv2-addhead b { font-size: 15px; }
+.tcv2-prog { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #94a3b8; }
+.tcv2-prog span { display: inline-flex; align-items: center; gap: 6px; }
+.tcv2-prog span i { width: 36px; height: 4px; border-radius: 2px; background: #e2e8f0; display: inline-block; }
+.tcv2-prog span.cur { color: var(--primary); }
+.tcv2-prog span.cur i { background: var(--primary); }
+.tcv2-prog span.done { color: #0F6E56; }
+.tcv2-prog span.done i { background: #0F6E56; }
+.tcv2-crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.tcv2-crumbs .lbl { color: #64748b; }
+.tcv2-crumb { display: inline-flex; align-items: center; gap: 8px; padding: 5px 6px 5px 10px; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; font-weight: 600; }
+.tcv2-crumb .fa-check { color: #0F6E56; font-size: 11px; }
+.tcv2-chg { border: 0; background: #eef2f7; color: var(--primary); font: inherit; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; cursor: pointer; }
+.tcv2-q { margin: 0; font-size: 20px; font-weight: 700; color: #0f172a; }
+.tcv2-qs { margin: -6px 0 0; font-size: 13px; color: #64748b; }
+.tcv2-stp { gap: 10px; }
+#tcv2Days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.tcv2-dc { height: 56px; min-width: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 600; }
+.tcv2-dc.on { font-weight: 700; }
+.tcv2-ql { grid-column: 1 / -1; margin: 0; display: flex; gap: 16px; }
+.tcv2-ql .tcv2-link { margin: 0; }
+#tcv2Time { display: grid; gap: 10px; }
+.tcv2-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tcv2-pc { height: 48px; min-width: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font: inherit; font-size: 14px; }
+.tcv2-pc.on { border: 2px solid #0f172a; font-weight: 700; }
+.tcv2-custom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #64748b; }
+.tcv2-custom input[type="time"] { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; font: inherit; font-size: 14px; color: #0f172a; }
+.tcv2-tiles { gap: 10px; }
+.tcv2-tile { min-height: 104px; padding: 14px; border-radius: 14px; gap: 6px; font: inherit; }
+.tcv2-tile .tcv2-tile-t { font-size: 15px; }
+.tcv2-tile .tcv2-tile-d { font-size: 12.5px; line-height: 1.35; }
+.tcv2-tile.r-breakout, .tcv2-tile.r-ttkb, .tcv2-tile.r-supporter, .tcv2-tile.r-mix { border-width: 2px; }
+.tcv2-tile.r-breakout::after, .tcv2-tile.r-ttkb::after, .tcv2-tile.r-supporter::after, .tcv2-tile.r-mix::after { content: "✓ Chosen"; margin-top: auto; font-size: 12px; font-weight: 700; }
+.tcv2-nav { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.tcv2-navnote { flex: 1; min-width: 0; font-size: 13px; color: #64748b; }
+.tcv2-back { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; color: #0f172a; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.tcv2-next, .tcv2-addgo { padding: 12px 18px; }
+.tcv2-next:disabled, .tcv2-addgo:disabled { opacity: .45; cursor: not-allowed; }
+.tcv2-done { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: #E1F5EE; color: #085041; font-size: 13px; font-weight: 600; }
+.tcv2-done .fa-circle-check { font-size: 18px; color: #0F6E56; }
+.tcv2-done span { flex: 1; min-width: 0; }
+.tcv2-done button { border: 0; background: #fff; color: #085041; font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
+.tcv2-footnote.warn { color: #93370D; font-weight: 600; }
+@media (max-width: 600px) {
+  .tcv2-week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #tcv2Days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tcv2-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tcv2-prog span i { width: 20px; }
+  .tcv2-nav { flex-wrap: wrap; }
+  .tcv2-navnote { flex-basis: 100%; }
+}
+/* === tcv2 wizard END === */
