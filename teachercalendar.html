@@ -9,14 +9,14 @@
   <link rel="icon" type="image/png" sizes="32x32"
     href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=20261006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" />
-  <link rel="stylesheet" href="./teachercalendar-v2.css?v=20261006_0749_cards2" />
+  <link rel="stylesheet" href="./style.css?v=20261006_1006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" />
+  <link rel="stylesheet" href="./teachercalendar-v2.css?v=20261006_1006_steps1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <!-- Supabase + this page’s script -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
-  <script src="./teacher.js?v=20261006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" defer></script>
-  <script src="./teachercalendar-v2.js?v=20261006_0749_cards2" defer></script>
+  <script src="./teacher.js?v=20261006_1006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" defer></script>
+  <script src="./teachercalendar-v2.js?v=20261006_1006_steps1" defer></script>
 </head>
 
 <body class="page-teacher">
@@ -87,22 +87,42 @@
             </div>
             <small class="tip">Pick a teacher from the suggestions. Their saved hours load into the week below.</small>
           </div>
-          <div class="tcv2-wkhead"><b>The week</b><small id="tcv2WkNote"></small></div>
-          <div class="tcv2-week" id="tcv2Week"></div>
-          <div class="tcv2-pop hidden" id="tcv2Pop"></div>
-          <p class="tcv2-step"><span class="tcv2-n">1</span>Days</p>
-          <div class="tcv2-days" id="tcv2Days"></div>
-          <p class="tcv2-step"><span class="tcv2-n">2</span>Time</p>
-          <div class="tcv2-time" id="tcv2Time"></div>
-          <p class="tcv2-step"><span class="tcv2-n">3</span>Register as</p>
-          <div class="tcv2-tiles" id="tcv2Tiles"></div>
-          <p class="tcv2-hint" id="tcv2Hint"></p>
-          <div class="tcv2-sum"><span class="txt" id="tcv2Sum"></span><button type="button" class="btn-outline" id="tcv2AddBtn"><i class="fa-solid fa-plus"></i> Add to week</button></div>
-          <p class="tcv2-msg" id="tcv2Msg"></p>
+          <!-- === tcv2 steps BEGIN (6 Oct 2026) === two cards: what is saved (dashed = being added), and the composer -->
+          <section class="tcv2-cardwk" id="tcv2WkCard">
+            <div class="tcv2-wkhead">
+              <div class="tcv2-wktitle"><b>Current free hours</b><span class="tcv2-wktotal" id="tcv2WkTotal"></span><span class="tcv2-pending hidden" id="tcv2Pending"></span></div>
+              <small id="tcv2WkNote"></small>
+            </div>
+            <div class="tcv2-week" id="tcv2Week"></div>
+            <div class="tcv2-pop hidden" id="tcv2Pop"></div>
+            <div class="tcv2-lgd"><span><i class="tcv2-dot r-breakout"></i>Breakout</span><span><i class="tcv2-dot r-ttkb"></i>TTKB</span><span><i class="tcv2-dot r-supporter"></i>Supporter</span><span><i class="tcv2-dot r-mix"></i>Mix</span><span class="tcv2-lgd-new"><i class="tcv2-dot-new"></i>dashed with a + = being added, not saved yet</span></div>
+            <p class="tcv2-msg" id="tcv2WkMsg"></p>
+          </section>
+          <section class="tcv2-cardadd" id="tcv2AddCard">
+            <div class="tcv2-addhead"><b><i class="fa-solid fa-plus" aria-hidden="true"></i> Add free hours</b><small>Pick the days first. The time and the role appear once a day is picked.</small></div>
+            <div class="tcv2-stp" id="tcv2Stp1">
+              <p class="tcv2-step"><span class="tcv2-n" id="tcv2N1" data-n="1">1</span>Days<span class="tcv2-stsum" id="tcv2StSum1"></span></p>
+              <div class="tcv2-days" id="tcv2Days"></div>
+              <p class="tcv2-wait" id="tcv2Wait"><i class="fa-regular fa-hand-pointer" aria-hidden="true"></i> Pick one or more days to continue.</p>
+            </div>
+            <div class="tcv2-stp tcv2-locked" id="tcv2Stp2">
+              <p class="tcv2-step"><span class="tcv2-n" id="tcv2N2" data-n="2">2</span>Time<span class="tcv2-stsum" id="tcv2StSum2"></span></p>
+              <div class="tcv2-time" id="tcv2Time"></div>
+            </div>
+            <div class="tcv2-stp tcv2-locked" id="tcv2Stp3">
+              <p class="tcv2-step"><span class="tcv2-n" id="tcv2N3" data-n="3">3</span>Register as<span class="tcv2-stsum" id="tcv2StSum3"></span></p>
+              <div class="tcv2-tiles" id="tcv2Tiles"></div>
+              <p class="tcv2-hint" id="tcv2Hint"></p>
+            </div>
+            <div class="tcv2-sum tcv2-locked" id="tcv2SumBar"><span class="txt" id="tcv2Sum"></span><button type="button" class="btn-primary tcv2-addgo" id="tcv2AddBtn"><i class="fa-solid fa-plus"></i> Add to week</button></div>
+            <p class="tcv2-msg" id="tcv2Msg"></p>
+          </section>
+          <!-- === tcv2 steps END === -->
         </div>
       </div>
 
       <div class="modal-footer">
+        <span class="tcv2-footnote" id="tcv2FootNote"></span>
         <button class="btn-secondary" id="teacherCalCancelBtn" type="button">Cancel</button>
         <button class="btn-primary" id="teacherCalSaveBtn" type="button">
           <i class="fa-solid fa-floppy-disk"></i> Save

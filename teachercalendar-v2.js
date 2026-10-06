@@ -19,7 +19,7 @@
    renderTeacherBoard, reassignAfterTeacherScheduleChangeByEmail, tBoardHtml. */
 
 const TCV2 = {
-  VERSION: '20261005a',
+  VERSION: '20261006_steps1',
   ROLES: ['breakout', 'ttkb', 'supporter', 'mix'],
   LABEL: { breakout: 'Breakout', ttkb: 'TTKB', supporter: 'Supporter', mix: 'Mix', none: 'No role' },
   ICON: { breakout: 'fa-table-cells-large', ttkb: 'fa-clipboard-check', supporter: 'fa-life-ring', mix: 'fa-shuffle' },
@@ -121,12 +121,12 @@ function tcv2PrepModal() {
     if (wk) { const b = document.createElement('div'); b.id = 'tcv2Bulk'; b.className = 'tcv2-bulk'; wk.parentNode.insertBefore(b, wk.nextSibling); }
   }
   const title = document.getElementById('teacherCalTitle');
-  if (title) title.innerHTML = '<i class="fa-solid fa-chalkboard-user"></i> Add free hours';
-  tcv2.items = []; tcv2.sel = null; tcv2.days = new Set(); tcv2.role = 'breakout';
+  if (title) title.innerHTML = '<i class="fa-solid fa-chalkboard-user"></i> Free hours';
+  tcv2.items = []; tcv2.sel = null; tcv2.days = new Set(); tcv2.role = null;   // tcv2 steps: no role is pre-chosen, the teacher picks one
   tcv2BuildComposer();
   const chg = document.getElementById('tcv2Change'); if (chg) chg.classList.add('hidden');
   const inp = document.getElementById('teacherNameInput'); if (inp) { inp.value = ''; delete inp.dataset.userRoleUid; delete inp.dataset.userRoleEmail; }
-  tcv2SetMsg('');
+  tcv2SetMsg(''); tcv2SetMsg('', '', 'week');
   tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave();
   if (!tcv2.bound) { tcv2BindModal(); tcv2.bound = true; }
 }
@@ -140,13 +140,13 @@ function tcv2BuildComposer() {
   const time = document.getElementById('tcv2Time');
   if (time) {
     time.innerHTML = TCV2.PRESETS.map(([s, e], i) => `<span class="tcv2-pc${i === 2 ? ' on' : ''}" data-s="${s}" data-e="${e}">${s}–${e}</span>`).join('')
-      + `<input id="tcv2Ts" type="time" step="60" value="18:00"><span class="to">to</span><input id="tcv2Te" type="time" step="60" value="21:00">`;
+      + `<span class="tcv2-or">or your own time</span><input id="tcv2Ts" type="time" step="60" value="18:00"><span class="to">to</span><input id="tcv2Te" type="time" step="60" value="21:00">`;
   }
   const tiles = document.getElementById('tcv2Tiles');
   if (tiles) {
-    tiles.innerHTML = TCV2.ROLES.map(r => `<div class="tcv2-tile${r === tcv2.role ? ' r-' + r : ''}" data-r="${r}"><i class="fa-solid ${TCV2.ICON[r]}" aria-hidden="true"></i>${TCV2.LABEL[r]}</div>`).join('');
+    tiles.innerHTML = TCV2.ROLES.map(r => `<div class="tcv2-tile${r === tcv2.role ? ' r-' + r : ''}" data-r="${r}"><span class="tcv2-tile-t"><i class="fa-solid ${TCV2.ICON[r]}" aria-hidden="true"></i>${TCV2.LABEL[r]}</span><small class="tcv2-tile-d">${TCV2.HINT[r]}</small></div>`).join('');
   }
-  const hint = document.getElementById('tcv2Hint'); if (hint) hint.textContent = TCV2.HINT[tcv2.role];
+  const hint = document.getElementById('tcv2Hint'); if (hint) hint.textContent = TCV2.HINT[tcv2.role] || '';
 }
 
 async function tcv2LoadTeacher(email, name, isSelf) {
@@ -154,7 +154,7 @@ async function tcv2LoadTeacher(email, name, isSelf) {
   const who = document.getElementById('tcv2Who'); if (who) who.textContent = tcv2.email ? (tcv2.name + (isSelf ? ' · you' : '')) : 'nobody picked yet';
   const av = document.getElementById('tcv2Av'); if (av) av.textContent = tcv2.email ? tcv2Initials(tcv2.name) : '?';
   const pop = document.getElementById('tcv2Pop'); if (pop) pop.classList.add('hidden');
-  if (!tcv2.email) { tcv2SetMsg('Could not tell who you are. Use Change teacher to pick one.', 'warn'); tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave(); return; }
+  if (!tcv2.email) { tcv2SetMsg('Could not tell who you are. Use Change teacher to pick one.', 'warn', 'week'); tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave(); return; }
   try {
     const res = await fetch(`/api/cal-get-teacher-ranges?teacherEmail=${encodeURIComponent(tcv2.email)}`);
     if (!res.ok) throw new Error('Failed to load saved hours');
@@ -164,10 +164,10 @@ async function tcv2LoadTeacher(email, name, isSelf) {
       role: tcv2Role(r.role), orig: tcv2Role(r.role), saved: true, del: false
     }));
     const noRole = tcv2.items.filter(it => it.role === 'none').length;
-    tcv2SetMsg(noRole ? `${noRole} saved range(s) have no role yet. Click a grey block to set one.` : '', 'warn');
+    tcv2SetMsg(noRole ? `${noRole} saved range(s) have no role yet. Click a grey block to set one.` : '', 'warn', 'week');
   } catch (e) {
     console.error(e);
-    tcv2SetMsg('Could not load the saved hours. Check console.', 'err');
+    tcv2SetMsg('Could not load the saved hours. Check console.', 'err', 'week');
   }
   tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave();
 }
@@ -180,16 +180,28 @@ function tcv2RenderWeek() {
       .map((it, k) => ({ it, k }))
       .filter(x => x.it.day === d)
       .sort((a, b) => timeToMinutes(a.it.start) - timeToMinutes(b.it.start))
-      .map(({ it, k }) => `<span class="tcv2-chip r-${it.role}${it.saved ? '' : ' new'}${it.del ? ' del' : ''}${tcv2.sel === k ? ' sel' : ''}" data-k="${k}" title="${tcv2E(TCV2.LABEL[it.role])}${it.saved ? '' : ' · not saved yet'}${it.del ? ' · will be removed' : ''}">${tcv2Short(it.start)}–${tcv2Short(it.end)}</span>`)
+      .map(({ it, k }) => `<span class="tcv2-chip r-${it.role}${it.saved ? '' : ' new'}${it.del ? ' del' : ''}${tcv2.sel === k ? ' sel' : ''}" data-k="${k}" title="${tcv2E(TCV2.LABEL[it.role])}${it.saved ? '' : ' · not saved yet'}${it.del ? ' · will be removed' : ''}">${it.saved ? '' : '+ '}${tcv2Short(it.start)}–${tcv2Short(it.end)}</span>`)
       .join('');
     return `<div class="tcv2-col${d === today ? ' today' : ''}" data-d="${d}"><h5>${TCV2.SHORTDAY[d]}</h5>${chips}</div>`;
   }).join('');
-  const total = tcv2.items.filter(it => !it.del).reduce((a, it) => a + (timeToMinutes(it.end) - timeToMinutes(it.start)), 0);
+  /* tcv2 steps (6 Oct 2026): the week card says how much is saved and what is still pending */
+  const live = tcv2.items.filter(it => !it.del);
+  const total = live.reduce((a, it) => a + (timeToMinutes(it.end) - timeToMinutes(it.start)), 0);
+  const fresh = tcv2.items.filter(it => !it.saved && !it.del).length;
+  const gone = tcv2.items.filter(it => it.saved && it.del).length;
+  const changed = tcv2.items.filter(it => it.saved && !it.del && it.role !== it.orig).length;
+  const tot = document.getElementById('tcv2WkTotal');
+  if (tot) tot.textContent = live.length ? `${tcv2Hours(total)} this week` : 'nothing saved yet';
+  const pend = document.getElementById('tcv2Pending');
+  if (pend) {
+    const parts = []; if (fresh) parts.push(`${fresh} new`); if (changed) parts.push(`${changed} changed`); if (gone) parts.push(`${gone} removed`);
+    pend.textContent = parts.length ? `${parts.join(', ')} — not saved yet` : '';
+    pend.classList.toggle('hidden', !parts.length);
+  }
   const note = document.getElementById('tcv2WkNote');
-  if (note) note.textContent = `${tcv2Hours(total)} this week · solid = saved · dashed = adding now · click a block to change its role or remove it`;
+  if (note) note.textContent = live.length ? 'Click a block to change its role or remove it.' : 'Add hours in the box below. They show here as dashed blocks until you press Save.';
   const bulk = document.getElementById('tcv2Bulk');
   if (bulk) {
-    const live = tcv2.items.filter(it => !it.del);
     bulk.innerHTML = live.length ? `<span class="lbl">Set every range to</span>${TCV2.ROLES.map(r => `<button type="button" data-bulk="${r}" class="r-${r}">${TCV2.LABEL[r]}</button>`).join('')}` : '';
   }
 }
@@ -208,8 +220,8 @@ function tcv2RenderPop() {
     + `<button type="button" class="tcv2-link" data-pa="done">Done</button>`;
 }
 
-function tcv2SetMsg(text, kind) {
-  const el = document.getElementById('tcv2Msg'); if (!el) return;
+function tcv2SetMsg(text, kind, where) {
+  const el = document.getElementById(where === 'week' ? 'tcv2WkMsg' : 'tcv2Msg'); if (!el) return;   // tcv2 steps: 'week' = under the week card
   el.textContent = text || '';
   el.className = 'tcv2-msg' + (kind === 'warn' ? ' warn' : kind === 'ok' ? ' ok' : '');
 }
@@ -234,10 +246,36 @@ function tcv2UpdateSum() {
   const c = tcv2Composer();
   const h = Math.max(0, c.b - c.a);
   const daysTxt = c.days.length ? c.days.map(d => TCV2.SHORTDAY[d]).join(', ') : 'No day picked';
-  el.textContent = `${daysTxt} · ${c.start || '--:--'}–${c.end || '--:--'} · ${TCV2.LABEL[tcv2.role]} · ${tcv2Hours(h * c.days.length)}`;
+  const roleTxt = tcv2.role ? `<span class="tcv2-sum-role r-${tcv2.role}">${TCV2.LABEL[tcv2.role]}</span>` : `<span class="tcv2-sum-miss">choose a role in step 3</span>`;
+  el.innerHTML = `<span class="tcv2-sum-lead">Adds</span> <b>${tcv2E(daysTxt)}</b> from <b>${tcv2E(c.start || '--:--')}</b> to <b>${tcv2E(c.end || '--:--')}</b> as ${roleTxt} <span class="tcv2-sum-tot">— ${tcv2Hours(h * c.days.length)} in total</span>`;
   const clash = c.days.length && c.b > c.a ? tcv2Clashes(c.days, c.a, c.b) : [];
   if (clash.length) tcv2SetMsg(`Overlaps what is already there on ${clash.join(', ')}.`, 'warn');
+  tcv2UpdateSteps(c);
 }
+
+/* === tcv2 steps BEGIN (6 Oct 2026) ===
+   The composer reveals itself one step at a time. Step 1 (days) is always shown. Steps 2
+   and 3 and the "Adds ..." bar stay hidden (.tcv2-locked) until at least one day is picked.
+   A finished step's number turns into a check and a short summary sits beside its title.
+   "Add to week" is disabled until days, a valid time AND a role are all answered.
+   tcv2UpdateSum calls this on every change, so nothing else has to remember to. */
+function tcv2UpdateSteps(c) {
+  c = c || tcv2Composer();
+  const dayOk = c.days.length > 0;
+  const timeOk = !!(c.start && c.end && c.b > c.a);
+  const roleOk = !!tcv2.role;
+  const lock = (id, open) => { const el = document.getElementById(id); if (el) el.classList.toggle('tcv2-locked', !open); };
+  lock('tcv2Stp2', dayOk); lock('tcv2Stp3', dayOk); lock('tcv2SumBar', dayOk);
+  const wait = document.getElementById('tcv2Wait'); if (wait) wait.classList.toggle('hidden', dayOk);
+  const mark = (id, done) => { const el = document.getElementById(id); if (!el) return; el.classList.toggle('done', done); el.innerHTML = done ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : (el.dataset.n || ''); };
+  mark('tcv2N1', dayOk); mark('tcv2N2', dayOk && timeOk); mark('tcv2N3', dayOk && roleOk);
+  const sum = (id, text, warn) => { const el = document.getElementById(id); if (!el) return; el.textContent = text || ''; el.classList.toggle('warn', !!warn); };
+  sum('tcv2StSum1', dayOk ? c.days.map(d => TCV2.SHORTDAY[d]).join(', ') : '');
+  sum('tcv2StSum2', !dayOk ? '' : (!c.start || !c.end) ? 'set a start and an end' : timeOk ? `${c.start}–${c.end} · ${tcv2Hours(c.b - c.a)}` : 'the end must be after the start', dayOk && !timeOk);
+  sum('tcv2StSum3', !dayOk ? '' : roleOk ? TCV2.LABEL[tcv2.role] : 'choose one', dayOk && !roleOk);
+  const btn = document.getElementById('tcv2AddBtn'); if (btn) btn.disabled = !(dayOk && timeOk && roleOk);
+}
+/* === tcv2 steps END === */
 
 function tcv2UpdateSave() {
   const btn = document.getElementById('teacherCalSaveBtn'); if (!btn) return;
@@ -245,21 +283,32 @@ function tcv2UpdateSave() {
   const gone = tcv2.items.filter(it => it.saved && it.del).length;
   const changed = tcv2.items.filter(it => it.saved && !it.del && it.role !== it.orig).length;
   btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save' + (fresh ? ` · ${fresh} new` : '') + (changed ? ` · ${changed} changed` : '') + (gone ? ` · ${gone} removed` : '');
+  /* tcv2 steps (6 Oct 2026): Save appears only once there is something to save. style.display, not
+     the hidden attribute — .btn-primary sets display:inline-flex and would override [hidden]. */
+  const dirty = fresh + changed + gone > 0;
+  btn.style.display = dirty ? '' : 'none';
+  const note = document.getElementById('tcv2FootNote');
+  if (note) { note.textContent = dirty ? '' : 'Nothing to save yet. Add a range above and the Save button appears here.'; note.classList.toggle('hidden', dirty); }
 }
 
 function tcv2AddToWeek() {
   const c = tcv2Composer();
   if (!c.days.length) { tcv2SetMsg('Pick at least one day first.', 'err'); return; }
+  if (!tcv2.role) { tcv2SetMsg('Choose what to register as (step 3) first.', 'err'); return; }
   if (!c.start || !c.end) { tcv2SetMsg('Set both a start and an end time.', 'err'); return; }
   if (c.b <= c.a) { tcv2SetMsg('End time must be after start time.', 'err'); return; }
   const clash = tcv2Clashes(c.days, c.a, c.b);
   if (clash.length) { tcv2SetMsg(`${clash.join(', ')} already ${clash.length === 1 ? 'has' : 'have'} hours in that time. Unselect ${clash.length === 1 ? 'it' : 'them'} or change the time.`, 'err'); return; }
+  const k0 = tcv2.items.length;   // tcv2 steps: everything from this index on is what this click added
   for (const d of c.days) tcv2.items.push({ id: null, day: d, start: tcv2HM(c.start), end: tcv2HM(c.end), role: tcv2.role, saved: false, del: false });
   tcv2.days = new Set();
   document.querySelectorAll('#tcv2Days .tcv2-dc').forEach(x => x.classList.remove('on'));
   tcv2.sel = null; tcv2RenderPop();
   tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave();
-  tcv2SetMsg(`Added ${c.days.length} range(s). They are kept once you press Save.`, 'ok');
+  tcv2SetMsg(`Added ${c.days.length} range(s) to the week above as dashed blocks. Press Save to keep them, or add more first.`, 'ok');
+  /* tcv2 steps (6 Oct 2026): the new blocks visibly arrive in the week card */
+  document.querySelectorAll('#tcv2Week .tcv2-chip').forEach(x => { if (Number(x.dataset.k) >= k0) x.classList.add('just'); });
+  document.getElementById('tcv2WkCard')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function tcv2BindModal() {
@@ -300,7 +349,7 @@ function tcv2BindModal() {
       const r = tcv2Role(bulk.dataset.bulk);
       tcv2.items.forEach(it => { if (!it.del) it.role = r; });
       tcv2RenderWeek(); tcv2RenderPop(); tcv2UpdateSave();
-      tcv2SetMsg(`Every range is now ${TCV2.LABEL[r]}. Press Save to keep it.`, 'ok'); return;
+      tcv2SetMsg(`Every range is now ${TCV2.LABEL[r]}. Press Save to keep it.`, 'ok', 'week'); return;
     }
     const chip = e.target.closest('.tcv2-chip');
     if (chip) { const k = Number(chip.dataset.k); tcv2.sel = (tcv2.sel === k ? null : k); tcv2RenderWeek(); tcv2RenderPop(); return; }
