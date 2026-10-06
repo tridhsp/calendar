@@ -405,8 +405,8 @@ function tcv2Block(r, extra) {
 
 /* === tcv2 cards BEGIN (6 Oct 2026) ===
    The By teacher view, redesigned: ONE CARD PER TEACHER.
-   - a row per WORKING day only, on a shared 08:00-22:00 ruler (it widens by
-     itself if anyone stores hours outside that window)
+   - a row per WORKING day only, on a 08:00-22:00 ruler that widens only for a
+     teacher whose own hours fall outside that window
    - solid bars in the role colour at the real position, the time written on
      the bar; a time that does not fit is printed beside the bar instead
      (tcv2FitBars measures after render, so it also follows window resizes)
@@ -439,6 +439,11 @@ function tcv2RulerHours(ax) {
   return hs;
 }
 function tcv2OnNow(t, today, now) { return t.ranges.some(r => r.day === today && now >= r.startMin && now < r.endMin); }
+/* a stable colour per TEACHER, for the avatar and the card's edge stripe (identity pass, 6 Oct 2026).
+   Hashed from the email, so a teacher keeps the same colour from one visit to the next. Seven
+   hues, none of them a role hue: purple stays Breakout, teal TTKB, coral Supporter, rose Mix. */
+const TCV2_ACC = ['#1D4ED8', '#0E7490', '#15803D', '#4D7C0F', '#B91C1C', '#A21CAF', '#854F0B'];
+function tcv2Accent(email) { let h = 5381; for (const ch of String(email || '')) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return TCV2_ACC[h % TCV2_ACC.length]; }
 /* give each range of one day a sub-lane: the first free one it does not overlap.
    Sub-lane 0 is drawn solid, the rest outlined. Also lists what overlaps what. */
 function tcv2DayLanes(rs) {
@@ -465,7 +470,7 @@ function tcv2Bar(r, email, ax, k) {
 function tcv2Card(t, ax, today, now) {
   const roles = [...TCV2.ROLES, 'none'].filter(r => t.byRole[r]);
   const onNow = tcv2OnNow(t, today, now);
-  const head = `<div class="tcv2-chd"><span class="tcv2-av r-${roles[0] || 'none'}">${tcv2E(tcv2Initials(t.name))}</span><span class="tcv2-name">${tcv2E(t.name)}</span>`
+  const head = `<div class="tcv2-chd"><span class="tcv2-av">${tcv2E(tcv2Initials(t.name))}</span><span class="tcv2-name">${tcv2E(t.name)}</span>`
     + roles.map(r => `<span class="tcv2-badge r-${r}">${TCV2.LABEL[r]}</span>`).join('')
     + (onNow ? '<span class="tcv2-onnow">On now</span>' : '') + '</div>';
   const acts = `<div class="tcv2-acts">`
@@ -497,7 +502,7 @@ function tcv2Card(t, ax, today, now) {
       + (warns.length ? `<span class="tcv2-warn"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>${warns.map(tcv2E).join(' · ')}</span>` : '') + `</div>`;
     body = rul + `<div class="tcv2-grid">${vl}${rows}</div>` + foot;
   }
-  return `<div class="tcv2-card" data-email="${tcv2E(t.email)}" data-n="${tcv2E((t.name + ' ' + t.email).toLowerCase())}" data-r="${roles.join(' ')}" data-now="${onNow ? 1 : 0}">${head}${acts}${body}</div>`;
+  return `<div class="tcv2-card" style="--acc:${tcv2Accent(t.email)}" data-email="${tcv2E(t.email)}" data-n="${tcv2E((t.name + ' ' + t.email).toLowerCase())}" data-r="${roles.join(' ')}" data-now="${onNow ? 1 : 0}">${head}${acts}${body}</div>`;
 }
 
 function renderTByTeacher(data) {
@@ -505,7 +510,6 @@ function renderTByTeacher(data) {
   const list = tcv2Prep(data);
   if (!list.length) return '<div class="tcv2-empty">No free hours saved yet. Press the calendar button at the bottom left to add some.</div>';
   const { day: today, min: now } = tcv2VnNow();
-  const ax = tcv2Axis(list);
   const anyNone = list.some(t => t.byRole.none);
   const nowCount = list.filter(t => tcv2OnNow(t, today, now)).length;
   const flt = ['all', ...TCV2.ROLES, ...(anyNone ? ['none'] : [])].filter(r => r === 'all' || list.some(t => t.byRole[r])).map(r => {
@@ -516,7 +520,7 @@ function renderTByTeacher(data) {
     + `<div class="tcv2-tb tcv2-ctb"><input type="search" class="tcv2-q" placeholder="Find a teacher">${flt}`
     + `<span class="count" id="tcv2Count">${list.length} teacher${list.length === 1 ? '' : 's'}</span>`
     + `<label class="tcv2-nowlab"><input type="checkbox" class="tcv2-nowtg"><span class="tcv2-sw" aria-hidden="true"></span>Working now · <b>${nowCount}</b></label></div>`
-    + `<div class="tcv2-cards">${list.map(t => tcv2Card(t, ax, today, now)).join('')}</div></div>`;
+    + `<div class="tcv2-cards">${list.map(t => tcv2Card(t, tcv2Axis([t]), today, now)).join('')}</div></div>`;
 }
 
 /* a time that does not fit inside its bar is moved beside the bar: to the right,

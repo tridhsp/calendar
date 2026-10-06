@@ -267,3 +267,16 @@
   .tcv2-chd { padding-right: 76px; }
 }
 /* === tcv2 cards END === */
+
+/* === tcv2 cards identity BEGIN (6 Oct 2026) ===
+   Two teachers with the same role used to look identical. Each card now carries the
+   TEACHER's own colour on the avatar and on a stripe down its left edge: one of seven
+   hues, chosen from the email so the same teacher always gets the same one, and none of
+   them a role hue (purple stays Breakout, teal TTKB, coral Supporter, rose Mix).
+   Bars and the badge keep the ROLE colour: avatar = who, badge and bars = what role.
+   The colour arrives as --acc on the card (tcv2Accent in the JS). */
+.tcv2-cards { gap: 14px; }
+.tcv2-card { --acc: #475569; }
+.tcv2-card::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px; border-radius: 0 4px 4px 0; background: var(--acc); }
+.tcv2-card .tcv2-av { background: var(--acc); color: #fff; border: 0; box-shadow: 0 1px 2px rgba(16, 24, 40, .15); }
+/* === tcv2 cards identity END === */
