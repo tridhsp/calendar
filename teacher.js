@@ -313,8 +313,9 @@ const delBtn = e.target.closest('.t-del');
 if (delBtn) {
   const email = delBtn.dataset.teacherEmail;
   const name = delBtn.dataset.teacherName || email;
-  const sure = confirm(
-    `Delete all availability for "${name}"?\nAny assigned student sessions will be reassigned if possible, or unassigned.`
+  const sure = await uiConfirm(
+    `Delete all availability for "${name}"?\nAny assigned student sessions will be reassigned if possible, or unassigned.`,
+    { title: 'Delete all free hours?', okLabel: 'Delete', danger: true }
   );
   if (!sure) return;
 
@@ -712,7 +713,7 @@ function openAvailEditor(anchorEl) {
   });
 
   document.getElementById('aeDelete').addEventListener('click', async () => {
-    if (!confirm('Delete this working shift?')) return;
+    if (!(await uiConfirm('Delete this working shift?', { title: 'Delete this shift?', okLabel: 'Delete', danger: true }))) return;
     try {
       const res = await fetch('/api/update-teacher-shift', {
         method: 'POST',

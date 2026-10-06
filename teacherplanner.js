@@ -71,7 +71,7 @@ function setupUI() {
             e.stopPropagation();
 
             const id = delBtn.dataset.id; // UUID
-            if (confirm('Delete this block?')) {
+            if (await uiConfirm('Delete this block?', { title: 'Delete this block?', okLabel: 'Delete', danger: true })) {
                 try {
                     const resp = await fetch('/api/teacher-blocks-delete', {
                         method: 'POST',

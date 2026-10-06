@@ -453,7 +453,7 @@ async function saveTeacherSchedule() {
   const kept = tcv2.items.filter(it => !it.del);
   if (!kept.length) { alert('Nothing would be left to save. To delete every free hour of a teacher, use the trash button on the board instead.'); return; }
   const noRole = kept.filter(it => it.role === 'none').length;
-  if (noRole && !confirm(`${noRole} range(s) still have no role. Save anyway?`)) return;
+  if (noRole && !(await uiConfirm(`${noRole} range(s) still have no role. Save anyway?`, { title: 'Some ranges have no role', okLabel: 'Save anyway' }))) return;
   const rows = kept.map(it => ({ day_of_week: it.day, time_start: it.start, time_end: it.end, timezone: tz, role: it.role === 'none' ? null : it.role }));
   const btn = document.getElementById('teacherCalSaveBtn'); if (btn) btn.disabled = true;
   try {
@@ -863,7 +863,7 @@ function openAvailEditor(anchorEl) {
   });
 
   card.querySelector('#aeDelete').addEventListener('click', async () => {
-    if (!confirm('Delete this free-hour range?')) return;
+    if (!(await uiConfirm('Delete this free-hour range?', { title: 'Delete this range?', okLabel: 'Delete', danger: true }))) return;
     try {
       const res = await fetch('/api/update-teacher-shift', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
