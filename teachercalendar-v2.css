@@ -163,3 +163,107 @@
   .tcv2-gl { left: 120px; }
   .tcv2-cp { display: none; }
 }
+
+/* === tcv2 cards BEGIN (6 Oct 2026) ===
+   The By teacher view as cards: a row per working day on a shared ruler.
+   Every class here starts with tcv2- and only the card view uses them; the
+   old week-strip rules above are left in place because By day still shares
+   .tcv2-bk and the role colours with them.
+   THE DAY NAME IS REPEATED SMALL AND MUTED AT THE RIGHT EDGE ON PURPOSE (.tcv2-de),
+   so a bar near the right can be matched to its day without reading back
+   across the row. Keep it quieter than the left label: made to match, the
+   row reads as a table with the same word at both ends. */
+.tcv2-ctb .tcv2-tb-flt i { font-style: normal; color: #94a3b8; margin-left: 2px; font-weight: 500; }
+.tcv2-ctb .tcv2-tb-flt.on i { color: #475467; }
+.tcv2-nowlab { margin-left: auto; position: relative; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #475467; cursor: pointer; user-select: none; }
+.tcv2-nowlab b { font-weight: 700; color: #0f172a; }
+.tcv2-nowlab input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.tcv2-sw { width: 32px; height: 18px; border-radius: 999px; background: #cbd5e1; position: relative; flex: none; transition: background .15s; }
+.tcv2-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.tcv2-nowlab input:checked + .tcv2-sw { background: var(--primary); }
+.tcv2-nowlab input:checked + .tcv2-sw::after { left: 16px; }
+.tcv2-nowlab input:focus-visible + .tcv2-sw { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.tcv2-cards { display: grid; gap: 12px; }
+.tcv2-card { position: relative; background: #fff; border: 1px solid #eef2f7; border-radius: 16px; box-shadow: 0 10px 24px rgba(16, 24, 40, .06); padding: 14px 16px 12px; }
+.tcv2-card.hide { display: none; }
+.tcv2-card:hover .tcv2-acts .card-action { opacity: 1; }
+.tcv2-chd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; padding-right: 84px; }
+.tcv2-card .tcv2-av { width: 30px; height: 30px; border-radius: 9px; font-size: 11px; }
+.tcv2-chd .tcv2-name { font-weight: 700; }
+.tcv2-chd .tcv2-badge { border-color: transparent; padding: 2px 9px; font-size: 11px; }
+.tcv2-onnow { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; background: #E1F5EE; color: #085041; font-size: 11px; font-weight: 600; }
+.tcv2-onnow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #1D9A6C; }
+.tcv2-cempty { display: flex; align-items: center; gap: 12px; padding: 4px 4px 2px; color: #64748b; font-size: 13px; }
+.tcv2-addbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: #0f172a; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* the ruler, the vertical hour lines, and one row per working day */
+.tcv2-rul { position: relative; height: 18px; margin: 0 36px 0 44px; }
+.tcv2-rul span { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.tcv2-rul span::after { content: ""; position: absolute; left: 50%; top: 15px; width: 1px; height: 4px; background: #cbd5e1; }
+.tcv2-grid { position: relative; padding-top: 2px; }
+.tcv2-vl { position: absolute; left: 44px; right: 36px; top: 2px; bottom: 0; pointer-events: none; z-index: 1; }   /* above the lanes, below the bars */
+.tcv2-vl i { position: absolute; top: 0; bottom: 0; border-left: 1px solid #e2e8f0; }
+.tcv2-dr { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) 36px; align-items: center; height: calc(26px + 24px * (var(--k, 1) - 1)); border-radius: 6px; }
+.tcv2-dr.z { background: #f8fafc; }
+.tcv2-dr:hover { background: #eef2f7; }
+.tcv2-dr.td, .tcv2-dr.td:hover { background: #e6f1fb; }
+.tcv2-dl { font-size: 12px; font-weight: 600; color: #475467; padding-left: 4px; white-space: nowrap; }
+.tcv2-dl.we { color: #94a3b8; }
+.tcv2-dr.td .tcv2-dl { color: var(--primary); }
+.tcv2-dr.td .tcv2-dl::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--primary); margin-left: 4px; vertical-align: 1px; }
+.tcv2-wi { color: #b54708; font-size: 11px; margin-left: 4px; }
+.tcv2-de { font-size: 10.5px; color: #94a3b8; text-align: right; padding-right: 5px; letter-spacing: .02em; }
+.tcv2-dr.td .tcv2-de { color: var(--primary); }
+.tcv2-lane { position: relative; height: calc(20px + 24px * (var(--k, 1) - 1)); }
+
+/* the bars. .tcv2-bk already gives position:absolute, overflow:hidden, cursor and the role background. */
+.tcv2-lane .tcv2-bk { top: 0; bottom: auto; height: 20px; z-index: 2; border-radius: 5px; display: flex; align-items: center; padding-left: 7px; box-sizing: border-box; color: #fff; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: .01em; }
+.tcv2-lane .tcv2-bk.r-breakout  { color: #EEEDFE; }
+.tcv2-lane .tcv2-bk.r-ttkb      { color: #E1F5EE; }
+.tcv2-lane .tcv2-bk.r-supporter { color: #FAECE7; }
+.tcv2-lane .tcv2-bk.r-mix       { color: #FBEAF0; }
+.tcv2-lane .tcv2-bk.r-none      { color: #f1f3f6; }
+.tcv2-lane .tcv2-bk:hover { outline: 2px solid rgba(13, 110, 253, .55); outline-offset: 1px; }
+.tcv2-lane .tcv2-bk:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* a second range that overlaps the first on the same day: outlined, one line below */
+.tcv2-lane .tcv2-bk.o { background: transparent; border-width: 1.5px; border-style: solid; padding-left: 6px; }
+.tcv2-lane .tcv2-bk.o.r-breakout  { border-color: #534AB7; color: #3C3489; }
+.tcv2-lane .tcv2-bk.o.r-ttkb      { border-color: #0F6E56; color: #085041; }
+.tcv2-lane .tcv2-bk.o.r-supporter { border-color: #993C1D; color: #712B13; }
+.tcv2-lane .tcv2-bk.o.r-mix       { border-color: #993556; color: #72243E; }
+.tcv2-lane .tcv2-bk.o.r-none      { border-color: #64748b; color: #475467; }
+/* a time that does not fit in its bar moves beside it (tcv2FitBars adds .out / .out-l) */
+.tcv2-lane .tcv2-bk.out { overflow: visible; }
+.tcv2-lane .tcv2-bk.out .tcv2-bt { position: absolute; left: 100%; padding-left: 6px; }
+.tcv2-lane .tcv2-bk.out.out-l .tcv2-bt { left: auto; right: 100%; padding-left: 0; padding-right: 6px; }
+.tcv2-lane .tcv2-bk.out.r-breakout  .tcv2-bt { color: #3C3489; }
+.tcv2-lane .tcv2-bk.out.r-ttkb      .tcv2-bt { color: #085041; }
+.tcv2-lane .tcv2-bk.out.r-supporter .tcv2-bt { color: #712B13; }
+.tcv2-lane .tcv2-bk.out.r-mix       .tcv2-bt { color: #72243E; }
+.tcv2-lane .tcv2-bk.out.r-none      .tcv2-bt { color: #475467; }
+
+/* the now line on today's row. --x is 0..1 across the lane; the lane starts after the 44px label and ends before the 36px echo */
+.tcv2-nowl { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--primary); border-radius: 1px; z-index: 4; pointer-events: none; left: calc(44px + (100% - 80px) * var(--x, 0)); }
+.tcv2-nowl::before { content: ""; position: absolute; top: -3px; left: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+
+/* the footer: days off as faint dashed pills, overlaps as a warning */
+.tcv2-off { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; padding-left: 4px; font-size: 11px; color: #64748b; }
+.tcv2-off > span { padding: 1px 8px; border-radius: 999px; border: 1px dashed #cbd5e1; }
+.tcv2-off > .tcv2-warn { margin-left: auto; border: 0; padding: 0; color: #b54708; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+
+/* one tooltip for the whole page, moved by tcv2BindCards */
+.tcv2-tip { position: absolute; transform: translate(-50%, -100%); background: #0f172a; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity .1s; }
+.tcv2-tip.on { opacity: 1; }
+.tcv2-tip::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-top-color: #0f172a; border-bottom: 0; }
+
+@media (max-width: 600px) {
+  .tcv2-rul { margin: 0 0 0 40px; }
+  .tcv2-rul span.odd { display: none; }
+  .tcv2-vl { left: 40px; right: 0; }
+  .tcv2-dr { grid-template-columns: 40px minmax(0, 1fr); }
+  .tcv2-de { display: none; }
+  .tcv2-nowl { left: calc(40px + (100% - 40px) * var(--x, 0)); }
+  .tcv2-chd { padding-right: 76px; }
+}
+/* === tcv2 cards END === */
