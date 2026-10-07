@@ -2,11 +2,15 @@
 
    THREE ENDPOINTS, all behind a Supabase token:
      GET  /cal-contracts-list              every contract (Admin, Super Admin) or only your own (Teacher)
-     POST /cal-contract-save               { teacherEmail, startDate, endDate, extension, extensionMonths, note, fixedHours }
-     fixedHours (7 Oct 2026, column fixed_hours, boolean, default false): the teacher's free
-     hours are fixed and will not change. The card shows it as a "Fixed hours" badge and
-     admins give those teachers priority when assigning students.
+     POST /cal-contract-save               { teacherEmail, startDate, endDate, extension, extensionMonths, note }
      POST /cal-contract-delete             { teacherEmail }
+     POST /cal-fixed-hours-set             { teacherEmail, fixedHours }      (7 Oct 2026, tansinh fixed-hours)
+
+   FIXED HOURS lives in its OWN table, public.teacher_flags (02-teacher-flags.sql), NOT on the
+   contract row, so a teacher with no contract dates can still be marked. The list reply carries
+   fixed: [emails], filtered like the contracts (a Teacher gets only their own). That read fails
+   SOFT: table missing or unreadable -> fixed: [] and a warn, the contracts still come back.
+   RLS on, no policies, service key only — the same shape as teacher_contracts.
 
    WHO MAY DO WHAT
      read   Teacher, Admin, Super Admin   (a Teacher gets ONLY the row for their own email)
@@ -38,6 +42,7 @@ module.exports = function (app) {
   const WRITE_ROLES = ['Admin', 'Super Admin'];
   const EXT = ['yes', 'no', 'discuss'];
   const TABLE = 'teacher_contracts';
+  const FLAGS = 'teacher_flags';                    // tansinh fixed-hours: one row per teacher, fixed_hours boolean
   const CACHE_MS = 120 * 1000;
 
   let sb = null;
@@ -111,7 +116,6 @@ module.exports = function (app) {
   const pub = (r) => ({
     teacher_email: r.teacher_email, start_date: r.start_date, end_date: r.end_date,
     extension: r.extension, extension_months: r.extension_months, note: r.note,
-    fixed_hours: !!r.fixed_hours,                                            // tansinh fixed-hours
     updated_by: r.updated_by, updated_at: r.updated_at
   });
 
@@ -120,11 +124,19 @@ module.exports = function (app) {
     const who = await gate(req, res, 'read'); if (!who) return;
     try {
       const canEdit = WRITE_ROLES.includes(who.role);
-      let q = db().from(TABLE).select('teacher_email,start_date,end_date,extension,extension_months,note,fixed_hours,updated_by,updated_at');   // tansinh fixed-hours
+      let q = db().from(TABLE).select('teacher_email,start_date,end_date,extension,extension_months,note,updated_by,updated_at');
       if (!canEdit) q = q.eq('teacher_email', String(who.email).toLowerCase());   // a Teacher sees only their own
       const { data, error } = await q.order('end_date', { ascending: true });
       if (error) throw error;
-      res.json({ ok: true, role: who.role, canEdit, me: who.email, contracts: (data || []).map(pub) });
+      let fixed = [];                                                     // tansinh fixed-hours: fails SOFT, see the header
+      try {
+        let f = db().from(FLAGS).select('teacher_email').eq('fixed_hours', true);
+        if (!canEdit) f = f.eq('teacher_email', String(who.email).toLowerCase());
+        const r = await f;
+        if (r.error) throw r.error;
+        fixed = (r.data || []).map(x => String(x.teacher_email).toLowerCase());
+      } catch (e) { console.warn('[cal-contract] fixed-hours list failed, showing none:', e.message || e); }
+      res.json({ ok: true, role: who.role, canEdit, me: who.email, contracts: (data || []).map(pub), fixed });
     } catch (e) {
       console.error('[cal-contract] list failed:', e.message || e);
       res.status(500).json({ error: 'Could not load contracts.' });
@@ -142,7 +154,6 @@ module.exports = function (app) {
       const ext = EXT.includes(b.extension) ? b.extension : 'discuss';
       let months = b.extensionMonths == null || b.extensionMonths === '' ? null : Number(b.extensionMonths);
       const note = b.note == null ? null : String(b.note).trim().slice(0, 500) || null;
-      const fixedHours = b.fixedHours === true || b.fixedHours === 'true' || b.fixedHours === 1 || b.fixedHours === '1';   // tansinh fixed-hours: anything else is false
 
       if (!isEmail(email)) return res.status(400).json({ error: 'teacherEmail is not an email address.' });
       if (!isYmd(start) || !isYmd(end)) return res.status(400).json({ error: 'Dates must be YYYY-MM-DD.' });
@@ -150,14 +161,33 @@ module.exports = function (app) {
       if (months != null && (!Number.isInteger(months) || months < 1 || months > 120)) return res.status(400).json({ error: 'extensionMonths must be a whole number from 1 to 120.' });
       if (ext !== 'yes') months = null;                                              // months only make sense when renewable
 
-      const row = { teacher_email: email, start_date: start, end_date: end, extension: ext, extension_months: months, note, fixed_hours: fixedHours, updated_by: who.email, updated_at: new Date().toISOString() };   // tansinh fixed-hours
+      const row = { teacher_email: email, start_date: start, end_date: end, extension: ext, extension_months: months, note, updated_by: who.email, updated_at: new Date().toISOString() };
       const { data, error } = await db().from(TABLE).upsert(row, { onConflict: 'teacher_email' }).select().limit(1);
       if (error) throw error;
-      console.log(`[cal-contract] SAVED ${email} ${start}..${end} ext=${ext}${months ? '+' + months + 'mo' : ''} fixed=${fixedHours ? 'yes' : 'no'} by ${who.email}`);   // tansinh fixed-hours
+      console.log(`[cal-contract] SAVED ${email} ${start}..${end} ext=${ext}${months ? '+' + months + 'mo' : ''} by ${who.email}`);
       res.json({ ok: true, contract: pub(data && data[0] ? data[0] : row) });
     } catch (e) {
       console.error('[cal-contract] save failed:', e.message || e);
       res.status(500).json({ error: 'Could not save the contract.' });
+    }
+  });
+
+  /* ---------- POST /cal-fixed-hours-set ---------- tansinh fixed-hours (7 Oct 2026) */
+  app.post('/cal-fixed-hours-set', async (req, res) => {
+    const who = await gate(req, res, 'write'); if (!who) return;
+    try {
+      const b = req.body || {};
+      const email = String(b.teacherEmail || '').trim().toLowerCase();
+      const on = b.fixedHours === true || b.fixedHours === 'true' || b.fixedHours === 1 || b.fixedHours === '1';   // anything else is off
+      if (!isEmail(email)) return res.status(400).json({ error: 'teacherEmail is not an email address.' });
+      const row = { teacher_email: email, fixed_hours: on, updated_by: who.email, updated_at: new Date().toISOString() };
+      const { error } = await db().from(FLAGS).upsert(row, { onConflict: 'teacher_email' });
+      if (error) throw error;
+      console.log(`[cal-contract] FIXED-HOURS ${on ? 'on ' : 'off'} ${email} by ${who.email}`);
+      res.json({ ok: true, teacherEmail: email, fixedHours: on });
+    } catch (e) {
+      console.error('[cal-contract] fixed-hours set failed:', e.message || e);
+      res.status(500).json({ error: 'Could not change Fixed hours.' });
     }
   });
 
