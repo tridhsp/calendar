@@ -20,6 +20,12 @@
    dark "Fixed hours" badge in the card header beside the role badges. The list reply carries
    fixed: [emails]. A teacher with no contract dates can still be marked.
 
+   CONTRACT4 (7 Oct 2026): the strip is drawn as a TIME BAR like the rows above it — the two dates at
+   either end, a filled track with a "today" marker, the count on the right — instead of a tinted
+   panel. And a card whose teacher has Fixed hours carries the class tc-fixed, which the CSS turns
+   into an ink ring, a tinted top, a ring round the avatar and an amber pin. The class names inside
+   the strip did not change, so tick() and the popup preview are untouched.
+
    DATA comes from three routes in cal-contracts.calendar.js, called with the
    Supabase token the page already holds (the global `client` from teacher.js):
        GET  /api/cal-contracts-list     POST /api/cal-contract-save     POST /api/cal-contract-delete
@@ -38,7 +44,7 @@
   window.__tcContract = true;
 
   const TC = {
-    VERSION: '20261007_contract3',                                 // contract3: Fixed hours pin + header badge (7 Oct 2026)
+    VERSION: '20261007_contract4',                                 // contract4: time-bar strip + the Fixed-hours card look (7 Oct 2026)
     SOON_DAYS: 60,                      // amber from here down
     URGENT_DAYS: 14,                    // red from here down
     EXT: { yes: 'Renewable', no: 'Fixed term', discuss: 'To discuss' },
@@ -116,30 +122,39 @@
     const more = k === 'yes' && row.extension_months ? ` · +${row.extension_months} mo` : '';
     return `<span class="tc-ext tc-ext-${k}" title="${esc(row.note || '')}"><i class="${TC.EXT_ICON[k]}" aria-hidden="true"></i>${TC.EXT[k]}${esc(more)}</span>`;
   }
+  /* === tansinh contract4 BEGIN (7 Oct 2026) === the strip is a TIME BAR, like the rows above it:
+       [ico] CONTRACT . under 14 days  [Fixed term]                2 days left . 03:04:51
+       1 Oct 2026 ==================o------------------------------ 9 Oct 2026 . 9 days
+     The class names inside are the same as before, so tick() and the popup preview need no change. */
   function stripHtml(email, row, canEdit) {
     const edit = canEdit ? ' tc-edit" role="button" tabindex="0" title="Click to edit the contract dates' : '';
+    const ico = `<span class="tc-ico"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>`;
     if (!row) {
       if (!canEdit) return '';
       return `<div class="tc-strip tc-none${edit}" data-email="${esc(email)}">`
-        + `<span class="tc-ico"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>`
-        + `<span class="tc-main"><span class="tc-lbl">Contract</span><span class="tc-range">No contract dates yet</span></span>`
-        + `<span class="tc-set"><i class="fa-solid fa-plus" aria-hidden="true"></i> Set contract dates</span></div>`;
+        + `<span class="tc-top">${ico}<span class="tc-lbl">Contract <small>· no dates yet</small></span>`
+        + `<span class="tc-set"><i class="fa-solid fa-plus" aria-hidden="true"></i> Set contract dates</span></span>`
+        + `</div>`;
     }
     const o = calc(row.start_date, row.end_date);
     if (!o) return '';
     const p = countParts(o);
     const word = STATE_WORD[o.state];
     return `<div class="tc-strip tc-${o.state}${edit}" data-email="${esc(email)}" data-start="${esc(row.start_date)}" data-end="${esc(row.end_date)}">`
-      + `<span class="tc-ico"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>`
-      + `<span class="tc-main">`
+      + `<span class="tc-top">${ico}`
       + `<span class="tc-lbl">Contract${word ? ` <small>· ${word}</small>` : ''}</span>`
-      + `<span class="tc-range"><b>${esc(fmtDate(o.s))}</b><i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i><b>${esc(fmtDate(o.e))}</b><span class="tc-len">· ${o.totalDays} d</span></span>`
-      + `<span class="tc-bar"><i style="width:${o.pct.toFixed(1)}%"></i></span>`
-      + `</span>`
-      + `<span class="tc-count"><b class="tc-days${p.word ? ' word' : ''}">${esc(p.big)}</b><span class="tc-dl">${esc(p.unit)}</span><span class="tc-clock">${p.clock}</span></span>`
       + extTag(row)
+      + `<span class="tc-count"><b class="tc-days${p.word ? ' word' : ''}">${esc(p.big)}</b><span class="tc-dl">${esc(p.unit)}</span><span class="tc-clock">${p.clock}</span></span>`
+      + `</span>`
+      + `<span class="tc-track">`
+      + `<b class="tc-d0">${esc(fmtDate(o.s))}</b>`
+      + `<span class="tc-bar"><i style="width:${o.pct.toFixed(1)}%"></i></span>`
+      + `<b class="tc-d1">${esc(fmtDate(o.e))}</b>`
+      + `<span class="tc-len">· ${plural(o.totalDays, 'day')}</span>`
+      + `</span>`
       + `</div>`;
   }
+  /* === tansinh contract4 END === */
 
   /* every second: update the numbers in place, change the colour only when the day count moves */
   function tick() {
@@ -246,6 +261,7 @@
   /* idempotent: called on every (re)draw, changes the DOM only when the state differs */
   function pinCard(card, email) {
     const on = st.fixed.has(email);
+    card.classList.toggle('tc-fixed', on);                                // tansinh contract4: the whole card looks special
     const head = card.querySelector(':scope > .tcv2-chd');
     if (head) {
       let badge = head.querySelector(':scope > .tc-hbadge');
@@ -489,7 +505,7 @@
       tries++;
       if (typeof client !== 'undefined' && client && client.auth) {
         clearInterval(hook);
-        try { client.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { reset(); document.querySelectorAll('#tBoardContent .tc-strip, #tBoardContent .tc-pin, #tBoardContent .tc-hbadge').forEach(el => el.remove()); } }); } catch (e) { /* harmless */ }   // tansinh fixed-hours
+        try { client.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { reset(); document.querySelectorAll('#tBoardContent .tc-strip, #tBoardContent .tc-pin, #tBoardContent .tc-hbadge').forEach(el => el.remove()); document.querySelectorAll('#tBoardContent .tcv2-card.tc-fixed').forEach(c => c.classList.remove('tc-fixed')); /* tansinh contract4 */ } }); } catch (e) { /* harmless */ }   // tansinh fixed-hours
       } else if (tries > 100) clearInterval(hook);                     // 20 s: give up quietly
     }, 200);
     startTicker();
