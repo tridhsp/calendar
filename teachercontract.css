@@ -1,0 +1,169 @@
+/* teachercontract.css — contract countdown on the Teacher Calendars cards  (7 Oct 2026)
+   Every class starts with tc- so nothing here can collide with style.css or
+   teachercalendar-v2.css. Loaded only by teachercalendar.html.
+
+   THE STRIP (one per card, appended as the card's last child):
+     tc-ok      more than 60 days left        calm blue
+     tc-soon    60 days or fewer              amber
+     tc-urgent  14 days or fewer              red, with a pulsing dot
+     tc-over    the end date has passed       dark red, bar full
+     tc-future  the start date is still ahead grey, counting down to the start
+     tc-none    no dates yet (admins only)    dashed, "Set contract dates"
+   The colours live in three variables on each state (--tc-fg, --tc-bg, --tc-bd),
+   so a new state is three lines, not thirty.                                      */
+
+/* ---------- the strip on the card ---------- */
+.tc-strip {
+  --tc-fg: #185fa5; --tc-bg: #f3f8fe; --tc-bd: #d6e6fb;
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 12px; padding: 9px 12px 9px 10px;
+  border: 1px solid var(--tc-bd); border-radius: 12px; background: var(--tc-bg);
+  color: #0f172a; font-size: 13px; line-height: 1.25;
+  transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+}
+.tc-strip.tc-edit { cursor: pointer; }
+.tc-strip.tc-edit:hover { border-color: var(--tc-fg); box-shadow: 0 6px 18px rgba(16, 24, 40, .08); }
+.tc-strip.tc-edit:focus-visible { outline: 2px solid var(--primary, #0d6efd); outline-offset: 2px; }
+.tc-strip.tc-edit::after {               /* a quiet pencil at the far right, visible on hover */
+  content: "\f303"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+  position: absolute; top: 6px; right: 8px; font-size: 10px; color: var(--tc-fg); opacity: 0; transition: opacity .15s;
+}
+.tc-strip.tc-edit:hover::after { opacity: .7; }
+
+.tc-soon   { --tc-fg: #b54708; --tc-bg: #fff7ed; --tc-bd: #fed7aa; }
+.tc-urgent { --tc-fg: #b42318; --tc-bg: #fef2f2; --tc-bd: #fecaca; }
+.tc-over   { --tc-fg: #7f1d1d; --tc-bg: #fef2f2; --tc-bd: #fecaca; }
+.tc-future { --tc-fg: #475467; --tc-bg: #f8fafc; --tc-bd: #e2e8f0; }
+.tc-none   { --tc-fg: #64748b; --tc-bg: #fff;    --tc-bd: #cbd5e1; border-style: dashed; color: #64748b; }
+
+.tc-ico {
+  flex: none; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--tc-fg); color: #fff; font-size: 14px; box-shadow: 0 1px 2px rgba(16, 24, 40, .15);
+}
+.tc-none .tc-ico { background: #eef2f7; color: #64748b; box-shadow: none; }
+
+.tc-main { flex: 1 1 220px; min-width: 0; display: grid; gap: 5px; }
+.tc-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--tc-fg); }
+.tc-lbl small { font-weight: 600; letter-spacing: .02em; text-transform: none; opacity: .8; }
+.tc-range { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 13px; color: #0f172a; }
+.tc-range b { font-weight: 600; }
+.tc-range i { color: #94a3b8; font-size: 11px; }
+.tc-range .tc-len { color: #64748b; font-size: 12px; }
+.tc-bar { height: 5px; border-radius: 999px; background: rgba(15, 23, 42, .08); overflow: hidden; }
+.tc-bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--tc-fg); transition: width .5s ease; }
+
+/* the running countdown: big number, small unit, then the clock on its own line */
+.tc-count {
+  flex: none; display: grid; grid-template-columns: auto auto; column-gap: 6px; align-items: baseline;
+  justify-items: end; text-align: right; min-width: 118px;
+}
+.tc-days { font-size: 24px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #0f172a; line-height: 1; }
+.tc-days.word { font-size: 16px; }
+.tc-dl { font-size: 11px; font-weight: 600; color: #64748b; white-space: nowrap; }
+.tc-clock {
+  grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: var(--tc-fg);
+}
+.tc-clock:empty { display: none; }
+.tc-urgent .tc-clock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tc-fg); animation: tc-pulse 1.2s ease-in-out infinite; }
+@keyframes tc-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tc-urgent .tc-clock::before { animation: none; } }
+
+.tc-ext {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap;
+}
+.tc-ext i { font-size: 10px; }
+.tc-ext-yes     { background: #ecfdf3; color: #067647; border-color: #abefc6; }
+.tc-ext-no      { background: #f1f5f9; color: #475467; border-color: #e2e8f0; }
+.tc-ext-discuss { background: #fffaeb; color: #b54708; border-color: #fedf89; }
+
+/* the empty state */
+.tc-none .tc-main { gap: 2px; }
+.tc-none .tc-lbl { color: #94a3b8; }
+.tc-none .tc-set { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--primary, #0d6efd); }
+.tc-none:hover { border-color: var(--primary, #0d6efd); background: #f8fbff; }
+
+/* the card's own bottom padding is 12px; the strip hugs it a little closer */
+.tcv2-card > .tc-strip:last-child { margin-bottom: 1px; }
+
+@media (max-width: 600px) {
+  .tc-strip { gap: 10px; padding: 8px 10px; }
+  .tc-count { min-width: 0; }
+  .tc-days { font-size: 20px; }
+  .tc-strip.tc-edit::after { display: none; }
+}
+
+/* ---------- the popup ---------- */
+.tc-modal { width: min(600px, 96vw); }
+.tc-modal .modal-header h2 { font-size: 1.1rem; }
+.tc-who { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; padding: 3px 12px 3px 4px; border: 1px solid #e2e8f0; border-radius: 999px; font-size: 14px; font-weight: 600; }
+.tc-av { --acc: #475569; width: 26px; height: 26px; border-radius: 8px; background: var(--acc); color: #fff; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; }
+.tc-body { gap: 18px; padding-bottom: 12px; }
+.tc-sec { display: grid; gap: 10px; }
+.tc-h { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #64748b; }
+.tc-h small { font-weight: 500; letter-spacing: 0; text-transform: none; margin-left: 6px; color: #94a3b8; }
+
+.tc-dates { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+.tc-field { display: grid; gap: 5px; }
+.tc-field > span { font-size: 12.5px; font-weight: 600; color: #475467; }
+.tc-field input[type="date"] {
+  width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb;
+  font: inherit; font-size: 14px; color: #0f172a; font-variant-numeric: tabular-nums;
+}
+.tc-field input[type="date"]:focus { outline: 2px solid var(--primary, #0d6efd); outline-offset: 1px; background: #fff; }
+.tc-field.bad input { border-color: #f04438; background: #fff5f5; }
+.tc-arrow { color: #94a3b8; padding-bottom: 13px; }
+
+.tc-quick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; color: #64748b; }
+.tc-quick button {
+  padding: 5px 11px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a;
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.tc-quick button:hover { border-color: #0f172a; }
+.tc-quick button.on { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+.tc-sum { margin: 0; min-height: 18px; font-size: 13px; color: #475467; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tc-sum b { color: #0f172a; font-weight: 600; }
+.tc-sum .dot { width: 4px; height: 4px; border-radius: 50%; background: #cbd5e1; }
+
+.tc-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tc-seg button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 10px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a;
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .12s ease;
+}
+.tc-seg button:hover { border-color: #94a3b8; }
+.tc-seg button[aria-checked="true"][data-v="yes"]     { background: #ecfdf3; color: #067647; border-color: #067647; box-shadow: inset 0 0 0 1px #067647; }
+.tc-seg button[aria-checked="true"][data-v="no"]      { background: #f1f5f9; color: #0f172a; border-color: #0f172a; box-shadow: inset 0 0 0 1px #0f172a; }
+.tc-seg button[aria-checked="true"][data-v="discuss"] { background: #fffaeb; color: #b54708; border-color: #b54708; box-shadow: inset 0 0 0 1px #b54708; }
+.tc-months { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475467; padding-left: 2px; }
+.tc-months input { width: 72px; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; font: inherit; font-size: 14px; text-align: center; }
+.tc-months small { color: #94a3b8; }
+.tc-months.hidden { display: none; }
+
+.tc-note { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb; font: inherit; font-size: 14px; }
+.tc-note:focus { outline: 2px solid var(--primary, #0d6efd); outline-offset: 1px; background: #fff; }
+
+.tc-prevsec .tc-strip { margin-top: 0; }
+.tc-prevsec .tc-main { flex-basis: 150px; }
+.tc-prevsec.hidden { display: none; }
+.tc-msg { margin: -6px 0 0; min-height: 18px; font-size: 13px; color: #b42318; }
+.tc-msg.ok { color: #067647; }
+.tc-msg:empty { display: none; }
+
+.tc-foot { align-items: center; }
+.tc-meta { flex: 1; font-size: 11.5px; color: #94a3b8; }
+.tc-danger { color: #b42318; }
+.tc-danger:hover { background: #fef2f2; }
+.tc-foot .hidden { display: none; }
+.btn-primary[disabled] { opacity: .6; cursor: progress; }
+
+@media (max-width: 520px) {
+  .tc-dates { grid-template-columns: 1fr; }
+  .tc-arrow { display: none; }
+  .tc-seg { grid-template-columns: 1fr; }
+  .tc-foot { flex-wrap: wrap; }
+  .tc-meta { flex-basis: 100%; order: 9; }
+}
