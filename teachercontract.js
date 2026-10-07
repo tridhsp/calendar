@@ -13,6 +13,9 @@
    A card with no dates shows a dashed "Set contract dates" strip (Admins only).
    Clicking a strip opens the popup: start, end, quick lengths, can-it-be-extended,
    a note, and a live preview of the strip. Remove is in the popup too.
+   Since contract2 (7 Oct 2026) the popup also has a FIXED HOURS switch. When it is on, the strip
+   carries a dark "Fixed hours" badge beside the extension tag. The row field is fixed_hours;
+   the save sends fixedHours. Admins use it to see at a glance whose calendar will not move.
 
    DATA comes from three routes in cal-contracts.calendar.js, called with the
    Supabase token the page already holds (the global `client` from teacher.js):
@@ -32,7 +35,7 @@
   window.__tcContract = true;
 
   const TC = {
-    VERSION: '20261007_contract1',
+    VERSION: '20261007_contract2',                                 // contract2: fixed-hours switch + badge (7 Oct 2026)
     SOON_DAYS: 60,                      // amber from here down
     URGENT_DAYS: 14,                    // red from here down
     EXT: { yes: 'Renewable', no: 'Fixed term', discuss: 'To discuss' },
@@ -109,6 +112,12 @@
     const more = k === 'yes' && row.extension_months ? ` · +${row.extension_months} mo` : '';
     return `<span class="tc-ext tc-ext-${k}" title="${esc(row.note || '')}"><i class="${TC.EXT_ICON[k]}" aria-hidden="true"></i>${TC.EXT[k]}${esc(more)}</span>`;
   }
+  /* === tansinh fixed-hours BEGIN (7 Oct 2026) === a second badge: the calendar is fixed and will not change */
+  const FIXED_TIP = 'Fixed hours: this teacher\'s free hours are fixed and will not change.';
+  function fixedTag(row) {
+    return row && row.fixed_hours ? `<span class="tc-ext tc-fixedh" title="${FIXED_TIP}"><i class="fa-solid fa-thumbtack" aria-hidden="true"></i>Fixed hours</span>` : '';
+  }
+  /* === tansinh fixed-hours END === */
   function stripHtml(email, row, canEdit) {
     const edit = canEdit ? ' tc-edit" role="button" tabindex="0" title="Click to edit the contract dates' : '';
     if (!row) {
@@ -130,7 +139,7 @@
       + `<span class="tc-bar"><i style="width:${o.pct.toFixed(1)}%"></i></span>`
       + `</span>`
       + `<span class="tc-count"><b class="tc-days${p.word ? ' word' : ''}">${esc(p.big)}</b><span class="tc-dl">${esc(p.unit)}</span><span class="tc-clock">${p.clock}</span></span>`
-      + extTag(row)
+      + extTag(row) + fixedTag(row)                                  // tansinh fixed-hours
       + `</div>`;
   }
 
@@ -218,7 +227,7 @@
     tick();
   }
   /* what the strip depends on, with no clock in it — so re-running decorate() over an untouched card changes nothing */
-  function keyOf(row) { return JSON.stringify([st.canEdit, row ? [row.start_date, row.end_date, row.extension, row.extension_months, row.note] : null]); }
+  function keyOf(row) { return JSON.stringify([st.canEdit, row ? [row.start_date, row.end_date, row.extension, row.extension_months, row.note, !!row.fixed_hours] : null]); }   // tansinh fixed-hours
   function refreshCard(email) {
     const root = document.getElementById('tBoardContent'); if (!root) return;
     root.querySelectorAll('.tcv2-card').forEach(card => {
@@ -260,6 +269,15 @@
               ${['yes', 'no', 'discuss'].map(k => `<button type="button" role="radio" aria-checked="false" data-v="${k}"><i class="${TC.EXT_ICON[k]}" aria-hidden="true"></i>${TC.EXT[k]}</button>`).join('')}
             </div>
             <div class="tc-months hidden" id="tcMonthsRow"><span>Each extension adds</span><input type="number" id="tcMonths" min="1" max="120" step="1" placeholder="12" inputmode="numeric"><span>months <small>(optional)</small></span></div>
+          </section>
+          <section class="tc-sec tc-fixedsec"><!-- tansinh fixed-hours -->
+            <h3 class="tc-h">Working hours</h3>
+            <label class="tc-switch" id="tcFixedL">
+              <input type="checkbox" id="tcFixed">
+              <span class="tc-sw" aria-hidden="true"></span>
+              <span class="tc-swtxt"><b><i class="fa-solid fa-thumbtack" aria-hidden="true"></i> Fixed hours</b>
+              <small>The free hours on this card are fixed and will not change. Give this teacher priority when assigning students.</small></span>
+            </label>
           </section>
           <section class="tc-sec">
             <h3 class="tc-h">Note <small>optional</small></h3>
@@ -303,6 +321,7 @@
     });
     $('#tcMonths', wrap).addEventListener('input', preview);
     $('#tcNote', wrap).addEventListener('input', preview);
+    $('#tcFixed', wrap).addEventListener('change', preview);           // tansinh fixed-hours
     $('#tcSave', wrap).addEventListener('click', save);
     $('#tcRemove', wrap).addEventListener('click', remove);
     return wrap;
@@ -323,7 +342,7 @@
     const wrap = st.modal;
     const ext = getExt();
     const months = ext === 'yes' ? Number($('#tcMonths', wrap).value) || null : null;
-    return { start_date: $('#tcStart', wrap).value, end_date: $('#tcEnd', wrap).value, extension: ext, extension_months: months, note: $('#tcNote', wrap).value.trim() };
+    return { start_date: $('#tcStart', wrap).value, end_date: $('#tcEnd', wrap).value, extension: ext, extension_months: months, note: $('#tcNote', wrap).value.trim(), fixed_hours: !!$('#tcFixed', wrap).checked };   // tansinh fixed-hours
   }
   function preview() {
     const wrap = st.modal, row = formRow(), sum = $('#tcSum', wrap), pv = $('#tcPreview', wrap), msg = $('#tcMsg', wrap);
@@ -353,6 +372,7 @@
     $('#tcEnd', wrap).value = row ? row.end_date : '';
     $('#tcMonths', wrap).value = row && row.extension_months ? row.extension_months : '';
     $('#tcNote', wrap).value = row && row.note ? row.note : '';
+    $('#tcFixed', wrap).checked = !!(row && row.fixed_hours);          // tansinh fixed-hours
     setExt(row ? row.extension : 'discuss');
     $('#tcRemove', wrap).classList.toggle('hidden', !row);
     $('#tcMeta', wrap).textContent = row && row.updated_by ? `Last saved by ${row.updated_by}${row.updated_at ? ' · ' + fmtStamp(row.updated_at) : ''}` : '';
@@ -372,7 +392,8 @@
     try {
       const j = await api('cal-contract-save', {
         teacherEmail: st.editing.email, startDate: row.start_date, endDate: row.end_date,
-        extension: row.extension, extensionMonths: row.extension_months, note: row.note || null
+        extension: row.extension, extensionMonths: row.extension_months, note: row.note || null,
+        fixedHours: !!row.fixed_hours                                   // tansinh fixed-hours
       });
       const saved = j.contract || Object.assign({ teacher_email: st.editing.email }, row);
       st.byEmail.set(st.editing.email, saved);

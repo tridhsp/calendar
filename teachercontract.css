@@ -78,6 +78,7 @@
 .tc-ext-yes     { background: #ecfdf3; color: #067647; border-color: #abefc6; }
 .tc-ext-no      { background: #f1f5f9; color: #475467; border-color: #e2e8f0; }
 .tc-ext-discuss { background: #fffaeb; color: #b54708; border-color: #fedf89; }
+.tc-ext.tc-fixedh { background: #0f172a; color: #fff; border-color: #0f172a; }   /* tansinh fixed-hours: dark = pinned down */
 
 /* the empty state */
 .tc-none .tc-main { gap: 2px; }
@@ -145,6 +146,21 @@
 
 .tc-note { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb; font: inherit; font-size: 14px; }
 .tc-note:focus { outline: 2px solid var(--primary, #0d6efd); outline-offset: 1px; background: #fff; }
+
+/* === tansinh fixed-hours BEGIN (7 Oct 2026) === the Fixed hours switch in the popup */
+.tc-switch { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb; cursor: pointer; }
+.tc-switch:hover { border-color: #94a3b8; }
+.tc-switch:has(input:checked) { border-color: #0f172a; background: #fff; }
+.tc-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tc-sw { flex: none; position: relative; width: 38px; height: 22px; margin-top: 1px; border-radius: 999px; background: #cbd5e1; transition: background .15s; }
+.tc-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .25); transition: left .15s; }
+.tc-switch input:checked + .tc-sw { background: #0f172a; }
+.tc-switch input:checked + .tc-sw::after { left: 19px; }
+.tc-switch input:focus-visible + .tc-sw { outline: 2px solid var(--primary, #0d6efd); outline-offset: 2px; }
+.tc-swtxt { display: grid; gap: 3px; font-size: 13px; color: #0f172a; }
+.tc-swtxt b { font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.tc-swtxt small { color: #64748b; font-size: 12px; line-height: 1.35; }
+/* === tansinh fixed-hours END === */
 
 .tc-prevsec .tc-strip { margin-top: 0; }
 .tc-prevsec .tc-main { flex-basis: 150px; }
