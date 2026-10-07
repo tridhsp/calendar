@@ -206,6 +206,7 @@ require("./routes/quiz-submission-get.quiz")(app);
 require("./routes/quiz-mark-adjust.quiz")(app); // quiz-marks 18 Sep 2026
 require("./routes/quiz-presign-wasabi.quiz")(app);
 require("./routes/quiz-emergency-submit.quiz")(app);
+require("./routes/quiz-av-convert.quiz")(app); // quiz-av 7 Oct 2026: probe + convert media so Safari can play it
 
 // --- Penalty Routes ---
 require("./routes/pen-credentials.penalty")(app);
@@ -1050,6 +1051,7 @@ require('./routes/mtx-api.messages.js')(app);
 require("./routes/rts-api.ringts")(app);
 require("./routes/exp-api.explain")(app);
 require("./routes/decuong-list.baihoc")(app);   // TSPATCH-DECUONG-20260930 the De cuong list route
+require("./routes/cal-contracts.calendar")(app);  // === tc contract BEGIN (7 Oct 2026) === END ===
 app.listen(PORT, () => {
   console.log('API server running on port ' + PORT);
 });
