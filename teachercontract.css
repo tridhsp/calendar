@@ -94,6 +94,97 @@
 @media (max-width: 600px) { .tcv2-card:has(.tc-pin) .tcv2-chd { padding-right: 120px; } }
 /* === tansinh fixed-hours END === */
 
+/* === tansinh fixed-blocks BEGIN (8 Oct 2026) === pins on the card's bars, and the Fixed-hours popup.
+   Every class starts with tfx- so nothing here can collide with style.css or teachercalendar-v2.css. */
+
+/* ---- on the card: the fixed part of a bar is a slightly darker band, underlined in the TEACHER'S colour
+        (--acc is set on the card by teachercalendar-v2) over a white hairline, so it reads on any role colour ---- */
+.tcv2-lane .tcv2-bk .tfx-bp { position: absolute; top: 0; bottom: 0; z-index: 0; pointer-events: none; box-sizing: border-box; background: rgba(15, 23, 42, .2); box-shadow: inset 0 -3px 0 var(--acc, #0f172a), inset 0 -4px 0 rgba(255, 255, 255, .9); }
+.tcv2-lane .tcv2-bk .tcv2-bt { position: relative; z-index: 1; }
+
+/* ---- the header badge: the measure, a WHITE pill with a short bar filled to the percent in the teacher's colour.
+        Three looks: full = ink border + gold star, mid = amber, low = red. White on purpose: a dark pill hid the bar. ---- */
+.tfx-hb { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: default; line-height: 1.3; }
+.tfx-hb small { font-weight: 500; color: #64748b; }
+.tfx-bar { position: relative; flex: none; width: 46px; height: 6px; border-radius: 999px; background: rgba(15, 23, 42, .1); overflow: hidden; }
+.tfx-bar::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p, 0) * 1%); border-radius: 999px; background: var(--acc, #0f172a); }
+.tfx-hb.tfx-full { border-color: #0f172a; box-shadow: inset 0 0 0 .5px #0f172a; }
+.tfx-hb.tfx-full::after { content: "\f005"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 10px; color: #f59e0b; order: -1; margin-right: -2px; }   /* a gold star before the bar */
+.tfx-hb.tfx-mid  { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+.tfx-hb.tfx-mid small { color: #b45309; }
+.tfx-hb.tfx-low  { border-color: #fecaca; background: #fff5f5; color: #b42318; }
+.tfx-hb.tfx-low small { color: #c2410c; }
+.tc-foot .tfx-full { color: #0f172a; } .tc-foot .tfx-mid { color: #92400e; } .tc-foot .tfx-low { color: #b42318; }
+
+/* ---- the popup ---- */
+.tfx-modal { width: min(680px, 96vw); }
+.tfx-modal .modal-header h2 { font-size: 1.1rem; }
+.tfx-body { gap: 12px; padding-bottom: 10px; }
+.tfx-hint { margin: 0; font-size: 13px; line-height: 1.45; color: #475467; }
+.tfx-hint b { font-weight: 600; color: #0f172a; }
+
+.tfx-week { position: relative; }
+.tfx-rul { position: relative; height: 18px; margin: 0 8px 0 44px; }
+.tfx-rul span { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.tfx-rul span::after { content: ""; position: absolute; left: 50%; top: 15px; width: 1px; height: 4px; background: #cbd5e1; }
+.tfx-grid { position: relative; padding-top: 2px; }
+.tfx-vl { position: absolute; left: 44px; right: 8px; top: 2px; bottom: 0; pointer-events: none; z-index: 0; }
+.tfx-vl i { position: absolute; top: 0; bottom: 0; border-left: 1px solid #e2e8f0; }
+.tfx-dr { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; height: calc(30px + 24px * (var(--k, 1) - 1)); padding-right: 8px; border-top: 1px solid #f1f5f9; }
+.tfx-dr:hover { background: #f8fafc; }
+.tfx-dl { font-size: 12px; font-weight: 600; color: #475467; padding-left: 4px; }
+.tfx-lane { position: relative; height: calc(22px + 24px * (var(--k, 1) - 1)); }
+
+/* a block: a dashed outline in its role tint (the role classes r-* supply the colours) */
+.tfx-bk { position: absolute; top: 1px; height: 20px; box-sizing: border-box; z-index: 1; border-width: 1.5px; border-style: dashed; border-radius: 5px; display: flex; align-items: center; padding-left: 7px; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; cursor: pointer; user-select: none; }
+.tfx-bk:hover { filter: brightness(.96); }
+.tfx-bk:focus-visible, .tfx-bk.sel { outline: 2px solid var(--primary, #0d6efd); outline-offset: 2px; }
+.tfx-bk .tfx-bt { position: relative; z-index: 1; }
+.tfx-bk.whole { border-style: solid; border-color: #0f172a; }
+.tfx-bk.whole:not(.out) .tfx-bt { visibility: hidden; }                 /* the band carries the same time */
+.tfx-bk.out { overflow: visible; }
+.tfx-bk.out .tfx-bt { position: absolute; left: 100%; padding-left: 6px; color: #334155; }
+.tfx-bk.out.out-l .tfx-bt { left: auto; right: 100%; padding-left: 0; padding-right: 6px; }
+/* the fixed part of a block: ink, an amber underline, the pin and the fixed time */
+.tfx-band { font-style: normal; position: absolute; top: -1.5px; bottom: -1.5px; z-index: 2; box-sizing: border-box; display: flex; align-items: center; overflow: hidden; background: #0f172a; box-shadow: inset 0 -3px 0 var(--acc, #fcd34d), inset 0 -4px 0 rgba(255, 255, 255, .9); }
+.tfx-band b { padding-left: 6px; font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; }
+.tfx-band.nolbl b { display: none; }
+
+/* the editor row for the selected block */
+.tfx-ed { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 38px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 13px; color: #475467; }
+.tfx-edhint { display: inline-flex; align-items: center; gap: 7px; color: #94a3b8; }
+.tfx-edname { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.tfx-edname b { font-weight: 600; color: #0f172a; }
+.tfx-seg { display: inline-flex; border: 1px solid #e2e8f0; border-radius: 999px; overflow: hidden; background: #fff; }
+.tfx-seg button { padding: 5px 11px; border: 0; background: #fff; color: #475467; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.tfx-seg button + button { border-left: 1px solid #e2e8f0; }
+.tfx-seg button:hover { color: #0f172a; }
+.tfx-seg button[aria-checked="true"] { background: #0f172a; color: #fff; }
+.tfx-part { display: inline-flex; align-items: center; gap: 6px; }
+.tfx-part.hidden { display: none; }
+.tfx-part select, .tfx-rule select { padding: 4px 24px 4px 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; font-size: 12.5px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tfx-part select:focus, .tfx-rule select:focus { outline: 2px solid var(--primary, #0d6efd); outline-offset: 1px; }
+.tfx-part select.bad { border-color: #f04438; background: #fff5f5; }
+
+/* legend, the quick rule, pin all / unpin all */
+.tfx-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #64748b; }
+.tfx-lg { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.tfx-lg i { display: inline-block; width: 22px; height: 12px; border-radius: 3px; box-sizing: border-box; }
+.tfx-lg-on { background: #0f172a; box-shadow: inset 0 -3px 0 var(--acc, #fcd34d), inset 0 -4px 0 rgba(255, 255, 255, .9); }
+.tfx-lg-off { border: 1.5px dashed #94a3b8; background: #f8fafc; }
+.tfx-rule { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tfx-tools button { padding: 5px 11px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.tfx-tools button:hover { border-color: #0f172a; }
+.tfx-save { background: #0f172a; }
+.tfx-save:hover { background: #1e293b; }
+.tfx-save[disabled] { opacity: .6; cursor: progress; }
+
+@media (max-width: 560px) {
+  .tfx-lg { margin-right: 0; flex-basis: 100%; }
+  .tfx-rule { white-space: normal; }
+}
+/* === tansinh fixed-blocks END === */
+
 /* the empty state */
 .tc-none .tc-main { gap: 2px; }
 .tc-none .tc-lbl { color: #94a3b8; }
