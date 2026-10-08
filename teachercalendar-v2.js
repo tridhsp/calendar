@@ -92,20 +92,107 @@ function tcv2FreeIn(r, a, b) {
 /* =====================================================================
    THE ADD MODAL
    ===================================================================== */
+/* === tcv2 pick BEGIN (8 Oct 2026) ===
+   Who may add free hours for ANOTHER teacher: only the roles in TCV2_PICK.ROLES (user_roles.role).
+   Everyone else edits their own week only: "Change teacher" is hidden, and a pencil on someone
+   else's card opens their own week with a note. THIS IS THE PAGE ONLY. The real lock belongs in
+   /api/save-teacher-schedule. To let every role pick, add 'teacher' to ROLES. */
+const TCV2_PICK = { ROLES: ['admin', 'super admin'] };     // lower case, compared trimmed + lower-cased
+let tcv2Me = null;                                         // { email, name, role, canPick } for the signed-in email
+
+async function tcv2WhoAmI() {
+  const s = await tcv2SessionTeacher();
+  if (tcv2Me && tcv2Me.email === s.email) return tcv2Me;
+  let role = '';
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    const uid = session?.user?.id;
+    if (uid) {
+      const { data: ur, error } = await client.from('user_roles').select('role').eq('uid', uid).maybeSingle();
+      if (error) throw error;
+      role = String(ur?.role || '').trim();
+    }
+  } catch (e) {
+    console.warn('[tcv2 pick] could not read your role; Change teacher stays hidden this time', e);
+    return { email: s.email, name: s.name, role: '', canPick: false };   // not cached: the next open asks again
+  }
+  tcv2Me = { email: s.email, name: s.name, role, canPick: TCV2_PICK.ROLES.includes(role.toLowerCase()) };
+  return tcv2Me;
+}
+
+function tcv2ApplyPick(canPick) {
+  const btn = document.getElementById('tcv2ChangeBtn'); if (btn) btn.style.display = canPick ? '' : 'none';
+  if (!canPick) { const chg = document.getElementById('tcv2Change'); if (chg) chg.classList.add('hidden'); }
+}
+
+function tcv2SameEmail(a, b) { return !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase(); }
+
+function tcv2Dirty() { return tcv2.items.some(it => (!it.saved && !it.del) || (it.saved && it.del) || (it.saved && !it.del && it.role !== it.orig)); }
+
+async function tcv2PickTeacher(email, name) {
+  email = String(email || '').trim(); if (!email) return;
+  const me = await tcv2WhoAmI();
+  if (!me.canPick) { tcv2ApplyPick(false); tcv2SetMsg('Only an Admin or Super Admin can add hours for another teacher.', 'err', 'week'); return; }
+  const chg = document.getElementById('tcv2Change');
+  const inp = document.getElementById('teacherNameInput');
+  const tidy = () => { if (chg) chg.classList.add('hidden'); if (inp) { inp.value = ''; delete inp.dataset.userRoleUid; delete inp.dataset.userRoleEmail; } };
+  if (tcv2SameEmail(email, tcv2.email)) { tidy(); return; }
+  if (tcv2Dirty() && !(await uiConfirm(`Your unsaved changes for ${tcv2.name} will be dropped. Switch to ${name || email}?`, { title: 'Switch teacher?', okLabel: 'Switch', danger: true }))) return;
+  tidy();
+  await tcv2LoadTeacher(email, name || teacherLabel(email), tcv2SameEmail(email, me.email));
+  tcv2ApplyPick(true);   // tcv2 pick2: Change teacher comes back once someone is picked
+}
+
 function openTeacherModal() {
   const m = document.getElementById('teacherCalendarModal'); if (!m) return;
   m.hidden = false;
-  tcv2PrepModal();
-  tcv2SessionTeacher().then(({ email, name }) => tcv2LoadTeacher(email, name, true));
+  tcv2PrepModal(); tcv2ApplyPick(false);
+  tcv2WhoAmI().then(me => { tcv2ApplyPick(me.canPick); return me.canPick ? tcv2AskWho(me) : tcv2LoadTeacher(me.email, me.name, true); });   // tcv2 pick2: Admin / Super Admin are asked WHO first
 }
 
 async function openTeacherEditorByEmail(teacherEmail, teacherName = '') {
   const m = document.getElementById('teacherCalendarModal'); if (!m) return;
   m.hidden = false;
-  tcv2PrepModal();
-  const me = await tcv2SessionTeacher();
-  await tcv2LoadTeacher(teacherEmail, teacherName || teacherLabel(teacherEmail), me.email === teacherEmail);
+  tcv2PrepModal(); tcv2ApplyPick(false);
+  const me = await tcv2WhoAmI();
+  tcv2ApplyPick(me.canPick);
+  if (!me.canPick && !tcv2SameEmail(me.email, teacherEmail)) {
+    await tcv2LoadTeacher(me.email, me.name, true);
+    tcv2SetMsg(`Only an Admin or Super Admin can change ${teacherName || teacherLabel(teacherEmail)}'s hours. This is your own week.`, 'warn', 'week');
+    return;
+  }
+  await tcv2LoadTeacher(teacherEmail, teacherName || teacherLabel(teacherEmail), tcv2SameEmail(me.email, teacherEmail));
 }
+/* --- tcv2 pick2 BEGIN (8 Oct 2026) ---
+   Admin / Super Admin: the round button asks WHO first, with the search box open and the cursor in it.
+   The week and the Add steps stay hidden until a teacher is picked, so nobody adds hours to the wrong
+   person by forgetting to press Change teacher. "or pick yourself" picks you in one click. */
+function tcv2Cards(show) {
+  ['tcv2WkCard', 'tcv2AddCard'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; });
+}
+
+function tcv2AskWho(me) {
+  tcv2.email = ''; tcv2.name = ''; tcv2.items = []; tcv2.sel = null;
+  const who = document.getElementById('tcv2Who'); if (who) who.textContent = 'no teacher picked yet';
+  const av = document.getElementById('tcv2Av'); if (av) av.textContent = '?';
+  const btn = document.getElementById('tcv2ChangeBtn'); if (btn) btn.style.display = 'none';
+  const chg = document.getElementById('tcv2Change');
+  if (chg) {
+    let q = document.getElementById('tcv2AskQ');
+    if (!q) {
+      q = document.createElement('div'); q.id = 'tcv2AskQ'; q.style.cssText = 'margin:0 0 8px;font-size:14px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline';
+      chg.insertBefore(q, chg.firstChild);
+      q.addEventListener('click', (e) => { if (e.target.closest('#tcv2PickMe')) tcv2WhoAmI().then(m2 => tcv2PickTeacher(m2.email, m2.name)); });
+    }
+    q.innerHTML = `<b>Who are you adding free hours for?</b><button type="button" class="tcv2-link" id="tcv2PickMe">or pick yourself: ${tcv2E(me.name || me.email)}</button>`;
+    chg.classList.remove('hidden');
+  }
+  tcv2Cards(false);
+  tcv2SetMsg(''); tcv2SetMsg('', '', 'week'); tcv2UpdateSum(); tcv2UpdateSave();
+  setTimeout(() => document.getElementById('teacherNameInput')?.focus(), 60);
+}
+/* --- tcv2 pick2 END --- */
+/* === tcv2 pick END === */
 
 async function tcv2SessionTeacher() {
   try {
@@ -155,6 +242,8 @@ function tcv2BuildComposer() {
 async function tcv2LoadTeacher(email, name, isSelf) {
   tcv2.email = (email || '').trim(); tcv2.name = name || tcv2.email; tcv2.items = []; tcv2.sel = null;
   const who = document.getElementById('tcv2Who'); if (who) who.textContent = tcv2.email ? (tcv2.name + (isSelf ? ' · you' : '')) : 'nobody picked yet';
+  const wkT = document.querySelector('#tcv2WkCard .tcv2-wktitle b'); if (wkT) wkT.textContent = (!tcv2.email || isSelf) ? 'Your week' : `${tcv2.name}'s week`;   // tcv2 pick (8 Oct 2026)
+  tcv2Cards(true);   // tcv2 pick2: a real load always shows the week and the Add steps
   const av = document.getElementById('tcv2Av'); if (av) av.textContent = tcv2.email ? tcv2Initials(tcv2.name) : '?';
   const pop = document.getElementById('tcv2Pop'); if (pop) pop.classList.add('hidden');
   if (!tcv2.email) { tcv2SetMsg('Could not tell who you are. Use Change teacher to pick one.', 'warn', 'week'); tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave(); return; }
@@ -416,8 +505,10 @@ function tcv2BindModal() {
       const chg = document.getElementById('tcv2Change'); if (chg) { chg.classList.toggle('hidden'); if (!chg.classList.contains('hidden')) document.getElementById('teacherNameInput')?.focus(); }
       return;
     }
-    const sug = e.target.closest('#teacherNameSuggestions button.suggestion');
-    if (sug) { tcv2LoadTeacher(sug.dataset.email, sug.dataset.name || sug.dataset.email, false); return; }
+    /* tcv2 pick (8 Oct 2026): teacher.js empties #teacherNameSuggestions BEFORE this runs, so the clicked
+       button is already detached and an '#teacherNameSuggestions ...' selector never matched. Match the button. */
+    const sug = e.target.closest('button.suggestion');
+    if (sug) { tcv2PickTeacher(sug.dataset.email, sug.dataset.name || ''); return; }
     const bulk = e.target.closest('#tcv2Bulk [data-bulk]');
     if (bulk) {
       const r = tcv2Role(bulk.dataset.bulk);
