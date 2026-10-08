@@ -230,7 +230,23 @@ async function reconcile(bookId, opts) {
   const s = sb(); const errs = [];
   if (p.code_source !== 'gb_code') { const { error } = await s.from('books').update({ gb_code: p.code }).eq('id', bookId); if (error) errs.push('books.gb_code: ' + error.message); }
   if (!errs.length) {
-    for (const a of p.add) { const { error } = await s.from('lessons').insert(a.row); if (error) errs.push('insert ' + a.lesson_id + ': ' + error.message); }
+    /* === tansinh gbsync-atomic BEGIN (7 Oct 2026) ===
+       One insert for ALL new lessons, not one per lesson. On 7 Oct 2026 the
+       web route and the gb-sync worker both wrote the same 26 lessons in the
+       same second: the worker read the table while it was half-written (11 of
+       26) and added the other 15. A single insert is atomic, so another reader
+       sees none or all. And a unique-key refusal (Postgres 23505) means the
+       other writer got there first -- that is not an error, the next tick
+       simply finds the lessons already in place. */
+    if (p.add.length) {
+      const { error } = await s.from('lessons').insert(p.add.map(a => a.row));
+      if (error && String(error.code) === '23505') {
+        console.log('[gb-sync] lost the race on ' + bookId + ' (' + p.code + '): ' + p.add.length + ' lesson(s) already added by another writer; skipping');
+        p.lost_race = true; p.add = [];
+      }
+      else if (error) errs.push('insert ' + p.add.length + ' lesson(s): ' + error.message);
+    }
+    /* === tansinh gbsync-atomic END === */
     for (const u of p.update) { const { error } = await s.from('lessons').update(u.diff).eq('id', u.id); if (error) errs.push('update ' + u.lesson_id + ': ' + error.message); }
     if (p.remove.length) { const { error } = await s.from('lessons').delete().in('id', p.remove.map(x => x.id)); if (error) errs.push('delete: ' + error.message); }
   }
