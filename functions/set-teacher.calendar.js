@@ -73,6 +73,11 @@ try {
       return res.status(400).json({ ok: false, error: 'Teacher is not available at this time' });
     }
 
+    // === tansinh assign-guard BEGIN (8 Oct 2026) === calendar hours, weekly shift and shift minutes; see _assignGuardHelper.js
+    const guard = await require('./_assignGuardHelper').check(supabase, { schedId, teacherEmail, role: 'teacher' });
+    if (!guard.ok) return res.status(guard.status || 409).json({ ok: false, error: guard.error, reason: guard.reason, guard: guard.detail || null });
+    // === tansinh assign-guard END ===
+
     // Update schedule with teacher email (and clear assigned_teacher_id)
     const { error: updErr } = await supabase
       .from('student_schedule')
