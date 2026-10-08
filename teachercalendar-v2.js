@@ -140,13 +140,14 @@ async function tcv2PickTeacher(email, name) {
   if (tcv2Dirty() && !(await uiConfirm(`Your unsaved changes for ${tcv2.name} will be dropped. Switch to ${name || email}?`, { title: 'Switch teacher?', okLabel: 'Switch', danger: true }))) return;
   tidy();
   await tcv2LoadTeacher(email, name || teacherLabel(email), tcv2SameEmail(email, me.email));
+  tcv2ApplyPick(true);   // tcv2 pick2: Change teacher comes back once someone is picked
 }
 
 function openTeacherModal() {
   const m = document.getElementById('teacherCalendarModal'); if (!m) return;
   m.hidden = false;
   tcv2PrepModal(); tcv2ApplyPick(false);
-  tcv2WhoAmI().then(me => { tcv2ApplyPick(me.canPick); return tcv2LoadTeacher(me.email, me.name, true); });
+  tcv2WhoAmI().then(me => { tcv2ApplyPick(me.canPick); return me.canPick ? tcv2AskWho(me) : tcv2LoadTeacher(me.email, me.name, true); });   // tcv2 pick2: Admin / Super Admin are asked WHO first
 }
 
 async function openTeacherEditorByEmail(teacherEmail, teacherName = '') {
@@ -162,6 +163,35 @@ async function openTeacherEditorByEmail(teacherEmail, teacherName = '') {
   }
   await tcv2LoadTeacher(teacherEmail, teacherName || teacherLabel(teacherEmail), tcv2SameEmail(me.email, teacherEmail));
 }
+/* --- tcv2 pick2 BEGIN (8 Oct 2026) ---
+   Admin / Super Admin: the round button asks WHO first, with the search box open and the cursor in it.
+   The week and the Add steps stay hidden until a teacher is picked, so nobody adds hours to the wrong
+   person by forgetting to press Change teacher. "or pick yourself" picks you in one click. */
+function tcv2Cards(show) {
+  ['tcv2WkCard', 'tcv2AddCard'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; });
+}
+
+function tcv2AskWho(me) {
+  tcv2.email = ''; tcv2.name = ''; tcv2.items = []; tcv2.sel = null;
+  const who = document.getElementById('tcv2Who'); if (who) who.textContent = 'no teacher picked yet';
+  const av = document.getElementById('tcv2Av'); if (av) av.textContent = '?';
+  const btn = document.getElementById('tcv2ChangeBtn'); if (btn) btn.style.display = 'none';
+  const chg = document.getElementById('tcv2Change');
+  if (chg) {
+    let q = document.getElementById('tcv2AskQ');
+    if (!q) {
+      q = document.createElement('div'); q.id = 'tcv2AskQ'; q.style.cssText = 'margin:0 0 8px;font-size:14px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline';
+      chg.insertBefore(q, chg.firstChild);
+      q.addEventListener('click', (e) => { if (e.target.closest('#tcv2PickMe')) tcv2WhoAmI().then(m2 => tcv2PickTeacher(m2.email, m2.name)); });
+    }
+    q.innerHTML = `<b>Who are you adding free hours for?</b><button type="button" class="tcv2-link" id="tcv2PickMe">or pick yourself: ${tcv2E(me.name || me.email)}</button>`;
+    chg.classList.remove('hidden');
+  }
+  tcv2Cards(false);
+  tcv2SetMsg(''); tcv2SetMsg('', '', 'week'); tcv2UpdateSum(); tcv2UpdateSave();
+  setTimeout(() => document.getElementById('teacherNameInput')?.focus(), 60);
+}
+/* --- tcv2 pick2 END --- */
 /* === tcv2 pick END === */
 
 async function tcv2SessionTeacher() {
@@ -213,6 +243,7 @@ async function tcv2LoadTeacher(email, name, isSelf) {
   tcv2.email = (email || '').trim(); tcv2.name = name || tcv2.email; tcv2.items = []; tcv2.sel = null;
   const who = document.getElementById('tcv2Who'); if (who) who.textContent = tcv2.email ? (tcv2.name + (isSelf ? ' · you' : '')) : 'nobody picked yet';
   const wkT = document.querySelector('#tcv2WkCard .tcv2-wktitle b'); if (wkT) wkT.textContent = (!tcv2.email || isSelf) ? 'Your week' : `${tcv2.name}'s week`;   // tcv2 pick (8 Oct 2026)
+  tcv2Cards(true);   // tcv2 pick2: a real load always shows the week and the Add steps
   const av = document.getElementById('tcv2Av'); if (av) av.textContent = tcv2.email ? tcv2Initials(tcv2.name) : '?';
   const pop = document.getElementById('tcv2Pop'); if (pop) pop.classList.add('hidden');
   if (!tcv2.email) { tcv2SetMsg('Could not tell who you are. Use Change teacher to pick one.', 'warn', 'week'); tcv2RenderWeek(); tcv2UpdateSum(); tcv2UpdateSave(); return; }
