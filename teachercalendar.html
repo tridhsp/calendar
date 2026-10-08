@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Teacher Calendars</title>
+
+  <link rel="icon" type="image/png" sizes="32x32"
+    href="https://files.tansinh.info/ads/tridhsp_1752750602636_ad_tridhsp_1752750602636.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=20261008_1453_2125_1944_1710_1505_1102_1037_1006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" />
+  <link rel="stylesheet" href="./teachercalendar-v2.css?v=20261008_1453_2125_1944_1710_1505_1102_1037_1006_steps1" />
+  <link rel="stylesheet" href="./teachercontract.css?v=20261008_1453_fixedblocks6" />  <!-- === tc contract BEGIN (7 Oct 2026) === END === -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="./ui-dialog.js?v=20261008_1453_2125_1944_1710_1505_1102_ui1"></script>
+
+  <!-- Supabase + this page’s script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js" defer></script>
+  <script src="./teacher.js?v=20261008_1453_2125_1944_1710_1505_1102_1037_1006_0749_0736_2327_2317_1131_1119_0751_2119_2120_1006_2153_1514" defer></script>
+  <script src="./teachercalendar-v2.js?v=20261008_1453_2125_1944_1710_1505_1102_1037_1006_steps1_pick1" defer></script>
+  <script src="./teachercontract.js?v=20261008_1453_fixedblocks6" defer></script>  <!-- === tc contract BEGIN (7 Oct 2026) === END === -->
+</head>
+
+<body class="page-teacher">
+  <!-- Login card (same as main) -->
+  <div class="card" id="loginCard" style="display:none">
+    <div class="logo">New App</div>
+    <div class="subtitle">Đăng nhập bằng email &amp; mật khẩu của bạn</div>
+
+    <div class="field"><input id="email" type="email" autocomplete="username" placeholder="Email" required /></div>
+    <div class="field">
+      <input id="password" type="password" autocomplete="current-password" placeholder="Mật khẩu" required />
+      <button class="toggle-password" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+    </div>
+    <button class="btn" id="login">Đăng nhập</button>
+    <div id="message" aria-live="polite"></div>
+  </div>
+
+  <!-- Board: TEACHERS -->
+  <main id="teacherBoard" class="board hidden">
+    <div class="board-header">
+      <h1><i class="fa-solid fa-chalkboard-user"></i> Teacher Calendars</h1>
+
+      <div class="view-toggle">
+        <a href="./index.html" class="btn-outline" title="Student calendars">
+          <i class="fa-solid fa-user-graduate"></i> Students
+        </a>
+
+        <button id="tViewByTeacher" class="toggle active" data-view="teacher">
+          <i class="fa-solid fa-user-tie"></i> By teacher
+        </button>
+        <button id="tViewByDay" class="toggle" data-view="day">
+          <i class="fa-solid fa-calendar-day"></i> By day
+        </button>
+        <button id="tRefreshBoard" class="icon-btn" title="Refresh">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="tBoardContent"></div>
+  </main>
+
+  <!-- Optional: allow editing from this page too -->
+  <button class="calendar-fab teacher-fab" id="openTeacherCalBtn" type="button" aria-label="Open teacher calendar setup"
+    title="Edit teachers' calendar">
+    <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+  </button>
+
+  <div class="modal-backdrop" id="teacherCalendarModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherCalTitle">
+      <div class="modal-header">
+        <h2 id="teacherCalTitle"><i class="fa-solid fa-chalkboard-user"></i> Teacher Calendar</h2>
+        <button class="modal-close" id="teacherCalCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- teachercalendar-v2 (5 Oct 2026): the add-free-hours composer. teachercalendar-v2.js fills the empty parts. -->
+        <div class="tcv2-m">
+          <div class="tcv2-for">
+            <span class="lbl">Free hours for</span>
+            <span class="tcv2-pill"><span class="tcv2-av" id="tcv2Av">?</span><span id="tcv2Who">…</span></span>
+            <button type="button" class="tcv2-link" id="tcv2ChangeBtn">Change teacher</button>
+          </div>
+          <div class="tcv2-change hidden" id="tcv2Change">
+            <div class="autocomplete">
+              <input id="teacherNameInput" type="text" placeholder="Type 4+ letters of the teacher's email…" autocomplete="off" />
+              <div id="teacherNameSuggestions" class="autocomplete-list hidden"></div>
+            </div>
+            <small class="tip">Pick a teacher from the suggestions. Their saved hours load into the week below.</small>
+          </div>
+          <!-- === tcv2 wizard BEGIN (6 Oct 2026) === Design B: the week as day cards in words; the composer asks one question at a time -->
+          <section class="tcv2-cardwk" id="tcv2WkCard">
+            <div class="tcv2-wkhead">
+              <div class="tcv2-wktitle"><b>Your week</b><span class="tcv2-wktotal" id="tcv2WkTotal"></span><span class="tcv2-pending hidden" id="tcv2Pending"></span></div>
+              <small id="tcv2WkNote"></small>
+            </div>
+            <div class="tcv2-week" id="tcv2Week"></div>
+            <div class="tcv2-pop hidden" id="tcv2Pop"></div>
+            <p class="tcv2-msg" id="tcv2WkMsg"></p>
+          </section>
+          <section class="tcv2-cardadd" id="tcv2AddCard">
+            <div class="tcv2-done hidden" id="tcv2Done"></div>
+            <div class="tcv2-addhead">
+              <b id="tcv2AddTitle">Add free hours</b>
+              <div class="tcv2-prog" id="tcv2Prog"><span data-s="1" class="cur"><i></i>Days</span><span data-s="2"><i></i>Time</span><span data-s="3"><i></i>Role</span></div>
+            </div>
+            <div class="tcv2-crumbs hidden" id="tcv2Crumbs"></div>
+            <div class="tcv2-stp" id="tcv2Stp1">
+              <h3 class="tcv2-q">Which days are you free?</h3>
+              <p class="tcv2-qs">Pick one or more. You will set the time on the next screen.</p>
+              <div class="tcv2-days" id="tcv2Days"></div>
+            </div>
+            <div class="tcv2-stp tcv2-locked" id="tcv2Stp2">
+              <h3 class="tcv2-q">From when to when?</h3>
+              <p class="tcv2-qs">Pick a usual shift, or type your own times.</p>
+              <div class="tcv2-time" id="tcv2Time"></div>
+            </div>
+            <div class="tcv2-stp tcv2-locked" id="tcv2Stp3">
+              <h3 class="tcv2-q">What will you do in this shift?</h3>
+              <p class="tcv2-qs">The admin uses this when assigning students to you.</p>
+              <div class="tcv2-tiles" id="tcv2Tiles"></div>
+              <p class="tcv2-hint" id="tcv2Hint"></p>
+            </div>
+            <div class="tcv2-nav">
+              <button type="button" class="tcv2-back hidden" id="tcv2BackBtn"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Back</button>
+              <span class="tcv2-navnote" id="tcv2Sum"></span>
+              <button type="button" class="btn-primary tcv2-next" id="tcv2NextBtn">Next: choose the time <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+              <button type="button" class="btn-primary tcv2-addgo hidden" id="tcv2AddBtn"><i class="fa-solid fa-plus"></i> <span id="tcv2AddLbl">Add to week</span></button>
+            </div>
+            <p class="tcv2-msg" id="tcv2Msg"></p>
+          </section>
+          <!-- === tcv2 wizard END === -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="tcv2-footnote" id="tcv2FootNote"></span>
+        <button class="btn-secondary" id="teacherCalCancelBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="teacherCalSaveBtn" type="button">
+          <i class="fa-solid fa-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back to main page (bottom-right) -->
+  <a href="./index.html" class="back-home-chip" aria-label="Back to main page" title="Back to Student Schedules">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>
+    <span>Back to main</span>
+  </a>
+
+  <a href="./teacherplanner.html" class="teacher-calendar-chip" title="Open Planner" aria-label="Open Planner"
+    target="_blank" rel="noopener">
+    <span class="icon" aria-hidden="true">🗂️</span>
+    <span class="label">Planner</span>
+  </a>
+
+</body>
+
+</html>

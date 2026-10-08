@@ -1,0 +1,433 @@
+/* teachercalendar-v2.css — 5 Oct 2026
+   Styles for the teacher calendar v2: the add-free-hours modal, the By teacher
+   week strips and the By day timeline. Every class starts with tcv2- so nothing
+   here can collide with style.css. Role colours are the only thing shared:
+   r-breakout, r-ttkb, r-supporter, r-mix, r-none. */
+
+/* ---------- role colours (one family each, text is the darkest stop) ---------- */
+.tcv2-badge, .tcv2-chip, .tcv2-tile, .tcv2-bk, .tcv2-tb-flt, .tcv2-roleset button { border: 1px solid #e2e8f0; }
+.r-breakout  { background: #EEEDFE; border-color: #534AB7; color: #3C3489; }
+.r-ttkb      { background: #E1F5EE; border-color: #0F6E56; color: #085041; }
+.r-supporter { background: #FAECE7; border-color: #993C1D; color: #712B13; }
+.r-mix       { background: #FBEAF0; border-color: #993556; color: #72243E; }
+.r-none      { background: #f1f3f6; border-color: #9aa0a6; color: #475467; }
+.tcv2-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tcv2-dot.r-breakout  { background: #534AB7; }
+.tcv2-dot.r-ttkb      { background: #0F6E56; }
+.tcv2-dot.r-supporter { background: #993C1D; }
+.tcv2-dot.r-mix       { background: #993556; }
+.tcv2-dot.r-none      { background: #64748b; }
+.tcv2-bk.r-breakout  { background: #534AB7; }
+.tcv2-bk.r-ttkb      { background: #0F6E56; }
+.tcv2-bk.r-supporter { background: #993C1D; }
+.tcv2-bk.r-mix       { background: #993556; }
+.tcv2-bk.r-none      { background: #64748b; }
+
+/* ---------- the add modal ---------- */
+.tcv2-m { display: grid; gap: 14px; font-size: 14px; color: #0f172a; }
+.tcv2-for { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tcv2-for .lbl { color: #64748b; font-size: 13px; }
+.tcv2-pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border: 1px solid #e2e8f0; border-radius: 999px; font-weight: 600; background: #fff; }
+.tcv2-av { width: 26px; height: 26px; border-radius: 50%; background: #e6f1fb; color: #185fa5; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex: none; }
+.tcv2-link { color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; background: none; border: 0; padding: 0; }
+.tcv2-change { display: grid; gap: 4px; max-width: 460px; }
+.tcv2-change input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; font: inherit; }
+.tcv2-change .tip { font-size: 12px; }
+
+.tcv2-wkhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tcv2-wkhead b { font-weight: 700; }
+.tcv2-wkhead small { color: #64748b; font-size: 12px; }
+.tcv2-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.tcv2-col { min-height: 52px; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+.tcv2-col h5 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #64748b; text-align: center; }
+.tcv2-col.today h5 { color: var(--primary); }
+.tcv2-chip { display: block; border-radius: 999px; padding: 4px 6px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; cursor: pointer; }
+.tcv2-chip.new { border-style: dashed; border-width: 2px; }
+.tcv2-chip.del { text-decoration: line-through; opacity: .45; }
+.tcv2-chip.sel { box-shadow: 0 0 0 3px rgba(13, 110, 253, .28); }
+
+.tcv2-bulk { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tcv2-bulk:empty { display: none; }
+.tcv2-bulk .lbl { font-size: 12px; color: #64748b; margin-right: 4px; }
+.tcv2-bulk button { padding: 4px 10px; border-radius: 999px; border: 1px solid; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.tcv2-pop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 13px; }
+.tcv2-pop .spacer { flex: 1; }
+
+.tcv2-step { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; color: #475467; }
+.tcv2-n { width: 20px; height: 20px; border-radius: 50%; background: #eef2f7; color: #0f172a; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.tcv2-days { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tcv2-dc { min-width: 46px; padding: 8px 0; text-align: center; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; color: #0f172a; }
+.tcv2-dc.on { background: var(--primary); color: #fff; border-color: transparent; }
+.tcv2-ql { margin-left: 6px; }
+.tcv2-ql .tcv2-link { margin-right: 10px; }
+.tcv2-time { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tcv2-pc { padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 999px; font-size: 13px; cursor: pointer; background: #fff; color: #0f172a; white-space: nowrap; }
+.tcv2-pc.on { border-color: #0f172a; background: #f1f5f9; font-weight: 600; }
+.tcv2-time input[type="time"] { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb; font: inherit; font-size: 14px; }
+.tcv2-time .to { color: #94a3b8; font-size: 13px; }
+.tcv2-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tcv2-tile { padding: 10px 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #0f172a; white-space: nowrap; overflow: hidden; }
+.tcv2-tile i { font-size: 15px; }
+.tcv2-hint { margin: -6px 0 0; font-size: 12px; color: #64748b; }
+.tcv2-sum { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #f8fafc; border-radius: 12px; }
+.tcv2-sum .txt { flex: 1; min-width: 200px; font-size: 14px; }
+.tcv2-msg { margin: -8px 0 0; font-size: 13px; min-height: 18px; color: #b42318; }
+.tcv2-msg.warn { color: #b54708; }
+.tcv2-msg.ok { color: #067647; }
+
+/* ---------- views: shared toolbar ---------- */
+.tcv2-tb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.tcv2-tb input[type="search"] { width: 200px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 12px; font: inherit; font-size: 14px; background: #fff; }
+.tcv2-tb-flt { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; color: #0f172a; }
+.tcv2-tb-flt.on { border-color: #0f172a; background: #f1f5f9; }
+.tcv2-tb .count { font-size: 13px; color: #64748b; }
+.tcv2-tb .tcv2-sort { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.tcv2-fa { background: #fff; border: 1px solid #eef2f7; border-radius: 12px; padding: 8px 12px; }
+.tcv2-fa .lbl { font-size: 13px; font-weight: 600; color: #0f172a; }
+.tcv2-fa select, .tcv2-fa input[type="time"] { padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 10px; font: inherit; font-size: 13px; background: #f9fafb; }
+.tcv2-fa button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.tcv2-fa .tcv2-fa-go { background: var(--primary); color: #fff; border-color: transparent; }
+.tcv2-fa .tcv2-fa-out { font-weight: 600; color: #0f172a; }
+.tcv2-legend { margin: 0 0 12px; font-size: 12px; color: #64748b; }
+.tcv2-empty { padding: 24px; text-align: center; color: #64748b; background: #fff; border: 1px dashed #e2e8f0; border-radius: 16px; }
+
+/* ---------- By teacher: week strips ---------- */
+.tcv2-g7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.tcv2-dh { font-size: 12px; font-weight: 700; color: #64748b; text-align: center; }
+.tcv2-dh.today { color: var(--primary); }
+.tcv2-ax { position: relative; height: 14px; font-size: 11px; color: #94a3b8; }
+.tcv2-ax span { position: absolute; top: 0; transform: translateX(-50%); }
+.tcv2-ax span:first-child { transform: none; }
+.tcv2-ax span:last-child { transform: translateX(-100%); }
+.tcv2-head { padding: 0 16px; margin-bottom: 4px; }
+.tcv2-rows { display: grid; gap: 12px; }
+.tcv2-row { position: relative; background: #fff; border: 1px solid #eef2f7; border-radius: 16px; box-shadow: 0 10px 24px rgba(16, 24, 40, .06); padding: 12px 16px 10px; }
+.tcv2-row.hide { display: none; }
+.tcv2-rowhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; padding-right: 84px; }
+.tcv2-name { font-weight: 800; color: #0f172a; font-size: 15px; }
+.tcv2-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.tcv2-tot { margin-left: auto; font-size: 12px; color: #64748b; white-space: nowrap; }
+.tcv2-acts { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; }
+.tcv2-acts .card-action { opacity: .55; }
+.tcv2-row:hover .tcv2-acts .card-action { opacity: 1; }
+.tcv2-tr { position: relative; height: 24px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 6px;
+  background-image: repeating-linear-gradient(to right, #e2e8f0 0 1px, transparent 1px 14.2857%); }
+.tcv2-tr.today::after { content: ""; position: absolute; top: -3px; bottom: -3px; border-left: 2px solid var(--primary); left: var(--now, -10%); }
+.tcv2-tr.at::before { content: ""; position: absolute; top: -5px; bottom: -5px; border-left: 3px solid #f59e0b; left: var(--at, -10%); z-index: 2; }
+.tcv2-bk { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; overflow: hidden; cursor: pointer; border-width: 0; }
+.tcv2-bk:hover { outline: 2px solid rgba(13, 110, 253, .55); }
+.tcv2-bk.hit { outline: 3px solid #f59e0b; z-index: 1; }
+.tcv2-bk.cut { border-left: 2px dotted #fff; }
+.tcv2-fl { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(255,255,255,.75) 0 3px, rgba(255,255,255,.25) 3px 6px); }
+.tcv2-cp { margin: 5px 0 0; font-size: 11px; color: #64748b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 14px; }
+
+/* ---------- By day: timeline ---------- */
+.tcv2-daytabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tcv2-daytab { min-width: 52px; padding: 7px 0; text-align: center; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; color: #0f172a; }
+.tcv2-daytab.on { background: var(--primary); color: #fff; border-color: transparent; }
+.tcv2-daytab small { display: block; font-size: 10px; font-weight: 500; opacity: .8; }
+.tcv2-dayhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.tcv2-dayhead b { font-size: 15px; }
+.tcv2-dayhead span { font-size: 13px; color: #64748b; }
+.tcv2-tl { background: #fff; border: 1px solid #eef2f7; border-radius: 16px; box-shadow: 0 10px 24px rgba(16, 24, 40, .06); padding: 14px 16px; }
+.tcv2-ln { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px; align-items: center; }
+.tcv2-ln.hdr { margin-bottom: 2px; }
+.tcv2-nm { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcv2-nm small { display: block; font-size: 11px; font-weight: 500; color: #64748b; }
+.tcv2-hx { position: relative; height: 14px; font-size: 11px; color: #94a3b8; }
+.tcv2-hx span { position: absolute; top: 0; transform: translateX(-50%); }
+.tcv2-body { position: relative; }
+.tcv2-gl { position: absolute; left: 180px; right: 0; top: 0; bottom: 0; pointer-events: none; }
+.tcv2-gl i { position: absolute; top: 0; bottom: 0; border-left: 1px solid #eef2f7; }
+.tcv2-gl i.now { border-left: 2px solid var(--primary); }
+.tcv2-trk { position: relative; height: 30px; }
+.tcv2-trk .tcv2-bk { display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 6px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+.tcv2-trk .tcv2-bk span { position: relative; }
+.tcv2-ln.item { border-top: 1px solid #eef2f7; padding: 4px 0; position: relative; }
+.tcv2-ln.item:last-of-type { border-bottom: 1px solid #eef2f7; }
+.tcv2-heat { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; }
+.tcv2-heat span { height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #94a3b8; }
+.tcv2-heat span.a { background: #e6f1fb; color: #185fa5; }
+.tcv2-heat span.b { background: var(--primary); color: #fff; }
+
+/* ---------- inline editor extras (reuses .avail-editor from style.css) ---------- */
+.avail-editor.tcv2-ae { width: 340px; }
+.tcv2-roleset { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.tcv2-roleset button { padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #fff; color: #475467; cursor: pointer; font-family: inherit; }
+.tcv2-roleset button.on { border-width: 2px; }
+
+@media (max-width: 1300px) { .tcv2-ax span.odd { display: none; } }
+@media (max-width: 900px) {
+  .tcv2-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tcv2-ln { grid-template-columns: 110px minmax(0, 1fr); }
+  .tcv2-gl { left: 120px; }
+  .tcv2-cp { display: none; }
+}
+
+/* === tcv2 cards BEGIN (6 Oct 2026) ===
+   The By teacher view as cards: a row per working day on a shared ruler.
+   Every class here starts with tcv2- and only the card view uses them; the
+   old week-strip rules above are left in place because By day still shares
+   .tcv2-bk and the role colours with them.
+   THE DAY NAME IS REPEATED SMALL AND MUTED AT THE RIGHT EDGE ON PURPOSE (.tcv2-de),
+   so a bar near the right can be matched to its day without reading back
+   across the row. Keep it quieter than the left label: made to match, the
+   row reads as a table with the same word at both ends. */
+.tcv2-ctb .tcv2-tb-flt i { font-style: normal; color: #94a3b8; margin-left: 2px; font-weight: 500; }
+.tcv2-ctb .tcv2-tb-flt.on i { color: #475467; }
+.tcv2-nowlab { margin-left: auto; position: relative; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #475467; cursor: pointer; user-select: none; }
+.tcv2-nowlab b { font-weight: 700; color: #0f172a; }
+.tcv2-nowlab input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.tcv2-sw { width: 32px; height: 18px; border-radius: 999px; background: #cbd5e1; position: relative; flex: none; transition: background .15s; }
+.tcv2-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.tcv2-nowlab input:checked + .tcv2-sw { background: var(--primary); }
+.tcv2-nowlab input:checked + .tcv2-sw::after { left: 16px; }
+.tcv2-nowlab input:focus-visible + .tcv2-sw { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.tcv2-cards { display: grid; gap: 12px; }
+.tcv2-card { position: relative; background: #fff; border: 1px solid #eef2f7; border-radius: 16px; box-shadow: 0 10px 24px rgba(16, 24, 40, .06); padding: 14px 16px 12px; }
+.tcv2-card.hide { display: none; }
+.tcv2-card:hover .tcv2-acts .card-action { opacity: 1; }
+.tcv2-chd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; padding-right: 84px; }
+.tcv2-card .tcv2-av { width: 30px; height: 30px; border-radius: 9px; font-size: 11px; }
+.tcv2-chd .tcv2-name { font-weight: 700; }
+.tcv2-chd .tcv2-badge { border-color: transparent; padding: 2px 9px; font-size: 11px; }
+.tcv2-onnow { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; background: #E1F5EE; color: #085041; font-size: 11px; font-weight: 600; }
+.tcv2-onnow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #1D9A6C; }
+.tcv2-cempty { display: flex; align-items: center; gap: 12px; padding: 4px 4px 2px; color: #64748b; font-size: 13px; }
+.tcv2-addbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: #0f172a; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* the ruler, the vertical hour lines, and one row per working day */
+.tcv2-rul { position: relative; height: 18px; margin: 0 36px 0 44px; }
+.tcv2-rul span { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.tcv2-rul span::after { content: ""; position: absolute; left: 50%; top: 15px; width: 1px; height: 4px; background: #cbd5e1; }
+.tcv2-grid { position: relative; padding-top: 2px; }
+.tcv2-vl { position: absolute; left: 44px; right: 36px; top: 2px; bottom: 0; pointer-events: none; z-index: 1; }   /* above the lanes, below the bars */
+.tcv2-vl i { position: absolute; top: 0; bottom: 0; border-left: 1px solid #e2e8f0; }
+.tcv2-dr { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) 36px; align-items: center; height: calc(26px + 24px * (var(--k, 1) - 1)); border-radius: 6px; }
+.tcv2-dr.z { background: #f8fafc; }
+.tcv2-dr:hover { background: #eef2f7; }
+.tcv2-dr.td, .tcv2-dr.td:hover { background: #e6f1fb; }
+.tcv2-dl { font-size: 12px; font-weight: 600; color: #475467; padding-left: 4px; white-space: nowrap; }
+.tcv2-dl.we { color: #94a3b8; }
+.tcv2-dr.td .tcv2-dl { color: var(--primary); }
+.tcv2-dr.td .tcv2-dl::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--primary); margin-left: 4px; vertical-align: 1px; }
+.tcv2-wi { color: #b54708; font-size: 11px; margin-left: 4px; }
+.tcv2-de { font-size: 10.5px; color: #94a3b8; text-align: right; padding-right: 5px; letter-spacing: .02em; }
+.tcv2-dr.td .tcv2-de { color: var(--primary); }
+.tcv2-lane { position: relative; height: calc(20px + 24px * (var(--k, 1) - 1)); }
+
+/* the bars. .tcv2-bk already gives position:absolute, overflow:hidden, cursor and the role background. */
+.tcv2-lane .tcv2-bk { top: 0; bottom: auto; height: 20px; z-index: 2; border-radius: 5px; display: flex; align-items: center; padding-left: 7px; box-sizing: border-box; color: #fff; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: .01em; }
+.tcv2-lane .tcv2-bk.r-breakout  { color: #EEEDFE; }
+.tcv2-lane .tcv2-bk.r-ttkb      { color: #E1F5EE; }
+.tcv2-lane .tcv2-bk.r-supporter { color: #FAECE7; }
+.tcv2-lane .tcv2-bk.r-mix       { color: #FBEAF0; }
+.tcv2-lane .tcv2-bk.r-none      { color: #f1f3f6; }
+.tcv2-lane .tcv2-bk:hover { outline: 2px solid rgba(13, 110, 253, .55); outline-offset: 1px; }
+.tcv2-lane .tcv2-bk:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* a second range that overlaps the first on the same day: outlined, one line below */
+.tcv2-lane .tcv2-bk.o { background: transparent; border-width: 1.5px; border-style: solid; padding-left: 6px; }
+.tcv2-lane .tcv2-bk.o.r-breakout  { border-color: #534AB7; color: #3C3489; }
+.tcv2-lane .tcv2-bk.o.r-ttkb      { border-color: #0F6E56; color: #085041; }
+.tcv2-lane .tcv2-bk.o.r-supporter { border-color: #993C1D; color: #712B13; }
+.tcv2-lane .tcv2-bk.o.r-mix       { border-color: #993556; color: #72243E; }
+.tcv2-lane .tcv2-bk.o.r-none      { border-color: #64748b; color: #475467; }
+/* a time that does not fit in its bar moves beside it (tcv2FitBars adds .out / .out-l) */
+.tcv2-lane .tcv2-bk.out { overflow: visible; }
+.tcv2-lane .tcv2-bk.out .tcv2-bt { position: absolute; left: 100%; padding-left: 6px; }
+.tcv2-lane .tcv2-bk.out.out-l .tcv2-bt { left: auto; right: 100%; padding-left: 0; padding-right: 6px; }
+.tcv2-lane .tcv2-bk.out.r-breakout  .tcv2-bt { color: #3C3489; }
+.tcv2-lane .tcv2-bk.out.r-ttkb      .tcv2-bt { color: #085041; }
+.tcv2-lane .tcv2-bk.out.r-supporter .tcv2-bt { color: #712B13; }
+.tcv2-lane .tcv2-bk.out.r-mix       .tcv2-bt { color: #72243E; }
+.tcv2-lane .tcv2-bk.out.r-none      .tcv2-bt { color: #475467; }
+
+/* the now line on today's row. --x is 0..1 across the lane; the lane starts after the 44px label and ends before the 36px echo */
+.tcv2-nowl { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--primary); border-radius: 1px; z-index: 4; pointer-events: none; left: calc(44px + (100% - 80px) * var(--x, 0)); }
+.tcv2-nowl::before { content: ""; position: absolute; top: -3px; left: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+
+/* the footer: days off as faint dashed pills, overlaps as a warning */
+.tcv2-off { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; padding-left: 4px; font-size: 11px; color: #64748b; }
+.tcv2-off > span { padding: 1px 8px; border-radius: 999px; border: 1px dashed #cbd5e1; }
+.tcv2-off > .tcv2-warn { margin-left: auto; border: 0; padding: 0; color: #b54708; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+
+/* one tooltip for the whole page, moved by tcv2BindCards */
+.tcv2-tip { position: absolute; transform: translate(-50%, -100%); background: #0f172a; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity .1s; }
+.tcv2-tip.on { opacity: 1; }
+.tcv2-tip::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-top-color: #0f172a; border-bottom: 0; }
+
+@media (max-width: 600px) {
+  .tcv2-rul { margin: 0 0 0 40px; }
+  .tcv2-rul span.odd { display: none; }
+  .tcv2-vl { left: 40px; right: 0; }
+  .tcv2-dr { grid-template-columns: 40px minmax(0, 1fr); }
+  .tcv2-de { display: none; }
+  .tcv2-nowl { left: calc(40px + (100% - 40px) * var(--x, 0)); }
+  .tcv2-chd { padding-right: 76px; }
+}
+/* === tcv2 cards END === */
+
+/* === tcv2 cards identity BEGIN (6 Oct 2026) ===
+   Two teachers with the same role used to look identical. Each card now carries the
+   TEACHER's own colour on the avatar and on a stripe down its left edge: one of seven
+   hues, chosen from the email so the same teacher always gets the same one, and none of
+   them a role hue (purple stays Breakout, teal TTKB, coral Supporter, rose Mix).
+   Bars and the badge keep the ROLE colour: avatar = who, badge and bars = what role.
+   The colour arrives as --acc on the card (tcv2Accent in the JS). */
+.tcv2-cards { gap: 14px; }
+.tcv2-card { --acc: #475569; }
+.tcv2-card::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px; border-radius: 0 4px 4px 0; background: var(--acc); }
+.tcv2-card .tcv2-av { background: var(--acc); color: #fff; border: 0; box-shadow: 0 1px 2px rgba(16, 24, 40, .15); }
+/* === tcv2 cards identity END === */
+
+/* === tcv2 steps BEGIN (6 Oct 2026) ===
+   The Add free hours modal, split in two: a WHITE card for what is true now (saved blocks
+   solid, blocks being added dashed with a +), and a TINTED card for the composer, which
+   reveals Time and Register as only after a day is picked. Finished steps show a check.
+   "Add to week" is the primary button; Save appears in the footer only once something was
+   added, changed or removed. The footer sticks to the bottom of the scrolling modal. */
+.tcv2-cardwk, .tcv2-cardadd { border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px 12px; display: grid; gap: 12px; }
+.tcv2-cardwk { background: #fff; }
+.tcv2-cardadd { background: #f8fafc; gap: 14px; }
+.tcv2-wkhead { align-items: center; }
+.tcv2-wktitle { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tcv2-wktitle b { font-size: 15px; }
+.tcv2-wktotal { padding: 2px 9px; border-radius: 999px; background: #eef2f7; color: #475467; font-size: 12px; font-weight: 600; }
+.tcv2-pending { padding: 2px 9px; border-radius: 999px; background: #FEF0C7; color: #93370D; font-size: 12px; font-weight: 600; }
+.tcv2-lgd { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #64748b; }
+.tcv2-lgd > span { display: inline-flex; align-items: center; gap: 5px; }
+.tcv2-dot-new { width: 16px; height: 9px; border: 2px dashed #64748b; border-radius: 999px; display: inline-block; box-sizing: border-box; }
+.tcv2-cardwk .tcv2-msg, .tcv2-cardadd .tcv2-msg { margin: 0; min-height: 0; }
+.tcv2-cardwk .tcv2-msg:empty, .tcv2-cardadd .tcv2-msg:empty { display: none; }
+.tcv2-chip.just { animation: tcv2-arrive .5s ease-out; }
+@keyframes tcv2-arrive { 0% { transform: scale(.85); box-shadow: 0 0 0 6px rgba(13, 110, 253, .35); } 100% { transform: none; box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); } }
+@media (prefers-reduced-motion: reduce) { .tcv2-chip.just { animation: none; } }
+
+.tcv2-addhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tcv2-addhead b { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+.tcv2-addhead b i { color: var(--primary); font-size: 13px; }
+.tcv2-addhead small { color: #64748b; font-size: 12px; }
+.tcv2-stp { display: grid; gap: 8px; }
+.tcv2-stp.tcv2-locked, .tcv2-sum.tcv2-locked { display: none; }
+.tcv2-step { color: #0f172a; font-size: 14px; }
+.tcv2-n { width: 22px; height: 22px; background: #fff; border: 1.5px solid #cbd5e1; color: #475467; box-sizing: border-box; }
+.tcv2-n.done { background: #0F6E56; border-color: #0F6E56; color: #fff; }
+.tcv2-n.done i { font-size: 11px; }
+.tcv2-stsum { margin-left: 2px; font-weight: 500; color: #64748b; font-size: 13px; }
+.tcv2-stsum:empty { display: none; }
+.tcv2-stsum::before { content: "·"; margin-right: 6px; }
+.tcv2-stsum.warn { color: #b54708; }
+.tcv2-wait { margin: 0; font-size: 13px; color: #64748b; display: inline-flex; align-items: center; gap: 6px; }
+.tcv2-or { color: #64748b; font-size: 12.5px; margin-left: 6px; }
+.tcv2-tile { flex-direction: column; align-items: flex-start; gap: 4px; white-space: normal; padding: 10px 12px; text-align: left; }
+.tcv2-tile-t { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.tcv2-tile-d { font-size: 11.5px; font-weight: 400; color: #64748b; line-height: 1.3; }
+.tcv2-tile.r-breakout .tcv2-tile-d, .tcv2-tile.r-ttkb .tcv2-tile-d, .tcv2-tile.r-supporter .tcv2-tile-d, .tcv2-tile.r-mix .tcv2-tile-d { color: inherit; opacity: .85; }
+#tcv2Hint { display: none; }   /* the hint now lives inside each tile */
+.tcv2-sum { background: #fff; border: 1px solid #e2e8f0; padding: 12px 14px; }
+.tcv2-sum .txt { line-height: 1.6; }
+.tcv2-sum-lead, .tcv2-sum-tot { color: #64748b; }
+.tcv2-sum-role { padding: 1px 9px; border-radius: 999px; border: 1px solid; font-weight: 600; font-size: 12.5px; }
+.tcv2-sum-miss { color: #b54708; font-style: italic; }
+.tcv2-addgo { padding: 10px 16px; }
+.tcv2-addgo:disabled { opacity: .45; cursor: not-allowed; }
+#teacherCalendarModal .modal-footer { position: sticky; bottom: 0; background: #fff; z-index: 2; align-items: center; }
+.tcv2-footnote { margin-right: auto; font-size: 13px; color: #64748b; }
+@media (max-width: 600px) {
+  .tcv2-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tcv2-sum .txt { min-width: 0; }
+  .tcv2-footnote { flex-basis: 100%; margin: 0 0 4px; }
+}
+/* === tcv2 steps END === */
+
+/* === tcv2 wizard BEGIN (6 Oct 2026) ===
+   Design B. The week is seven DAY CARDS that write every range out in words: the time in bold,
+   the role name under it in the role colour; entries being added are dashed with a "new" tag,
+   removed ones struck through. The composer asks one question per screen: big day buttons,
+   big shift buttons, four role cards; progress bars at the top right, "So far" chips you can
+   change, Back / Next / Add along the bottom. At phone width the week is two columns. */
+.tcv2-week { gap: 8px; }
+.tcv2-col { min-height: 70px; border-top: 2px solid #e2e8f0; padding: 6px 4px 2px; border-radius: 0 0 8px 8px; }
+.tcv2-col.today { border-top-color: var(--primary); }
+.tcv2-col.picked { background: #eaf3fd; border-top-color: var(--primary); }
+.tcv2-col h5 { text-align: left; margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #64748b; }
+.tcv2-col.today h5 { color: var(--primary); }
+.tcv2-col.today h5::after { content: " · today"; }
+.tcv2-col.picked h5 { color: var(--primary); }
+.tcv2-col.picked h5::after { content: " · adding"; }
+.tcv2-none { font-size: 12px; color: #94a3b8; }
+.tcv2-chip { display: block; width: 100%; box-sizing: border-box; text-align: left; border-radius: 8px; padding: 4px 6px; margin: 0 0 4px; font: inherit; line-height: 1.3; cursor: pointer; white-space: normal; overflow: visible; text-overflow: clip; background: transparent; border: 1px solid transparent; color: #0f172a; }
+.tcv2-chip.r-breakout, .tcv2-chip.r-ttkb, .tcv2-chip.r-supporter, .tcv2-chip.r-mix, .tcv2-chip.r-none { background: transparent; border-color: transparent; color: #0f172a; }
+.tcv2-chip:hover { background: #f1f5f9; }
+.tcv2-ct { display: block; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tcv2-cr { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; }
+.tcv2-chip.r-breakout .tcv2-cr  { color: #3C3489; }
+.tcv2-chip.r-ttkb .tcv2-cr      { color: #085041; }
+.tcv2-chip.r-supporter .tcv2-cr { color: #712B13; }
+.tcv2-chip.r-mix .tcv2-cr       { color: #72243E; }
+.tcv2-chip.r-none .tcv2-cr      { color: #64748b; font-style: italic; }
+.tcv2-tag { padding: 0 6px; border-radius: 999px; background: #FEF0C7; color: #93370D; font-size: 10px; font-weight: 700; font-style: normal; line-height: 1.6; }
+.tcv2-tag.del { background: #FEE4E2; color: #B42318; }
+.tcv2-chip.new { border-width: 2px; border-style: dashed; }
+.tcv2-chip.new.r-breakout  { background: #EEEDFE; border-color: #534AB7; }
+.tcv2-chip.new.r-ttkb      { background: #E1F5EE; border-color: #0F6E56; }
+.tcv2-chip.new.r-supporter { background: #FAECE7; border-color: #993C1D; }
+.tcv2-chip.new.r-mix       { background: #FBEAF0; border-color: #993556; }
+.tcv2-chip.new.r-none      { background: #f1f3f6; border-color: #9aa0a6; }
+.tcv2-wktitle b { font-size: 15px; }
+
+.tcv2-cardadd { gap: 12px; }
+.tcv2-addhead { align-items: center; }
+.tcv2-addhead b { font-size: 15px; }
+.tcv2-prog { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #94a3b8; }
+.tcv2-prog span { display: inline-flex; align-items: center; gap: 6px; }
+.tcv2-prog span i { width: 36px; height: 4px; border-radius: 2px; background: #e2e8f0; display: inline-block; }
+.tcv2-prog span.cur { color: var(--primary); }
+.tcv2-prog span.cur i { background: var(--primary); }
+.tcv2-prog span.done { color: #0F6E56; }
+.tcv2-prog span.done i { background: #0F6E56; }
+.tcv2-crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.tcv2-crumbs .lbl { color: #64748b; }
+.tcv2-crumb { display: inline-flex; align-items: center; gap: 8px; padding: 5px 6px 5px 10px; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; font-weight: 600; }
+.tcv2-crumb .fa-check { color: #0F6E56; font-size: 11px; }
+.tcv2-chg { border: 0; background: #eef2f7; color: var(--primary); font: inherit; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; cursor: pointer; }
+.tcv2-q { margin: 0; font-size: 20px; font-weight: 700; color: #0f172a; }
+.tcv2-qs { margin: -6px 0 0; font-size: 13px; color: #64748b; }
+.tcv2-stp { gap: 10px; }
+#tcv2Days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.tcv2-dc { height: 56px; min-width: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 600; }
+.tcv2-dc.on { font-weight: 700; }
+.tcv2-ql { grid-column: 1 / -1; margin: 0; display: flex; gap: 16px; }
+.tcv2-ql .tcv2-link { margin: 0; }
+#tcv2Time { display: grid; gap: 10px; }
+.tcv2-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tcv2-pc { height: 48px; min-width: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font: inherit; font-size: 14px; }
+.tcv2-pc.on { border: 2px solid #0f172a; font-weight: 700; }
+.tcv2-custom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #64748b; }
+.tcv2-custom input[type="time"] { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; font: inherit; font-size: 14px; color: #0f172a; }
+.tcv2-tiles { gap: 10px; }
+.tcv2-tile { min-height: 104px; padding: 14px; border-radius: 14px; gap: 6px; font: inherit; }
+.tcv2-tile .tcv2-tile-t { font-size: 15px; }
+.tcv2-tile .tcv2-tile-d { font-size: 12.5px; line-height: 1.35; }
+.tcv2-tile.r-breakout, .tcv2-tile.r-ttkb, .tcv2-tile.r-supporter, .tcv2-tile.r-mix { border-width: 2px; }
+.tcv2-tile.r-breakout::after, .tcv2-tile.r-ttkb::after, .tcv2-tile.r-supporter::after, .tcv2-tile.r-mix::after { content: "✓ Chosen"; margin-top: auto; font-size: 12px; font-weight: 700; }
+.tcv2-nav { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.tcv2-navnote { flex: 1; min-width: 0; font-size: 13px; color: #64748b; }
+.tcv2-back { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; color: #0f172a; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.tcv2-next, .tcv2-addgo { padding: 12px 18px; }
+.tcv2-next:disabled, .tcv2-addgo:disabled { opacity: .45; cursor: not-allowed; }
+.tcv2-done { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: #E1F5EE; color: #085041; font-size: 13px; font-weight: 600; }
+.tcv2-done .fa-circle-check { font-size: 18px; color: #0F6E56; }
+.tcv2-done span { flex: 1; min-width: 0; }
+.tcv2-done button { border: 0; background: #fff; color: #085041; font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
+.tcv2-footnote.warn { color: #93370D; font-weight: 600; }
+@media (max-width: 600px) {
+  .tcv2-week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #tcv2Days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tcv2-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tcv2-prog span i { width: 20px; }
+  .tcv2-nav { flex-wrap: wrap; }
+  .tcv2-navnote { flex-basis: 100%; }
+}
+/* === tcv2 wizard END === */
