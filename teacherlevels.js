@@ -1,4 +1,4 @@
-/* teacherlevels.js — "Level assignment": the levels a teacher may teach, on the Teacher Calendars cards  (9 Oct 2026)
+/* teacherlevels.js — "Level assignment": the levels a teacher may teach, on the Teacher Calendars cards  (9 Oct 2026, v2)
 
    Loaded by teachercalendar.html AFTER teacher.js, teachercalendar-v2.js and teachercontract.js.
    It edits none of them. It watches #tBoardContent and, whenever the By-teacher cards are
@@ -9,10 +9,17 @@
    ADMINS ONLY. The list route answers 403 to a Teacher, and then this module draws NOTHING —
    no badge, no popup. The server decides; the page only follows.
 
-   Clicking the badge opens the picker, modelled on "Chọn cấp lớp" in writing.tansinh.info:
-   a search box, one row per GROUP (KET, Test Prep, IELTS, B1, ...) with a colour dot, a count
-   and a chevron that unfolds the levels inside it, a checkbox on the group that takes the whole
-   group, "Select all", "Selected: N levels", Clear, Apply.
+   THE POPUP (v2, 9 Oct 2026 — the "group rail" design):
+     top     a strip of CHIPS, one per chosen level in its group's colour, each with its own ×,
+             plus "Select all" (every level there is) and "Clear all"
+     left    the GROUP RAIL: one row per group with a CHECKBOX that takes or drops the WHOLE
+             group (the old popup's group tick, kept on purpose), a colour dot, the name, and a
+             count — "2/10" once something in it is chosen. Clicking the row shows that group.
+     right   the chosen group's levels as TICK TILES, two per row, each with its student count;
+             "Take the whole group" / "Drop the whole group" above them, and a search box that
+             searches EVERY group — while you type, the tiles show every matching level with
+             its group written on it; empty the box and you are back in the group.
+     bottom  "Selected: N levels in G groups", Cancel, Apply (dimmed when nothing changed).
 
    DATA comes from two routes in cal-teacher-levels.calendar.js, called with the Supabase token the
    page already holds (the global `client` from teacher.js):
@@ -29,7 +36,7 @@
   window.__tcLevels = true;
 
   const TL = {
-    VERSION: '20261009_levels1',
+    VERSION: '20261009_levels2',
     TIP_MAX: 12,                                                      // levels named in the badge tooltip before "…"
     RETRY_MS: 30 * 1000                                               // after a failed load, wait this long before trying again
   };
@@ -48,7 +55,7 @@
     groups: [],                          // [{ key, label, levels: [names] }]
     byEmail: new Map(),                  // email -> [names]
     modal: null, editing: null,          // { email, name, initials, acc }
-    sel: new Set(), open: new Set(), q: '',
+    sel: new Set(), cur: '', q: '',      // the chosen names, the group on screen, the search text
     obs: null, decT: null
   };
 
@@ -58,6 +65,10 @@
   const toast = (msg, kind) => (window.uiToast ? window.uiToast(msg, kind) : alert(msg));
   const lower = (s) => String(s || '').trim().toLowerCase();
   const sameSet = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+  const colorOf = (key) => COLOR[key] || COLOR.OTHERS;
+  const groupOfName = (name) => { const g = st.groups.find(x => x.levels.includes(name)); return g || { key: 'OTHERS', label: 'Others', levels: [] }; };
+  const students = (name) => { const l = st.levels.find(x => x.name === name); return l ? l.students : null; };
+  const studentsText = (n) => n == null ? '' : n === 0 ? 'no students' : `${n} student${n === 1 ? '' : 's'}`;
 
   /* ---------- the data ---------- */
   async function token() {
@@ -164,22 +175,19 @@
             <span class="tlv-who"><span class="tlv-av" id="tlvAv">?</span><span id="tlvName">…</span></span></h2>
           <button class="modal-close" id="tlvClose" type="button" aria-label="Close">×</button>
         </div>
-        <div class="modal-body tlv-body">
-          <p class="tlv-hint">Tick every level this teacher can handle. The calendar warns when a student's level is outside this list.</p>
+        <div class="tlv-chips" id="tlvChips"></div>
+        <div class="tlv-body">
+          <div class="tlv-rail" id="tlvRail" role="listbox" aria-label="Groups"></div>
           <div class="tlv-panel">
-            <div class="tlv-top">
-              <span class="tlv-cap">Levels <b class="tlv-pill" id="tlvCount">0</b></span>
-              <label class="tlv-all"><input type="checkbox" id="tlvAll"><span>Select all</span></label>
-            </div>
+            <div class="tlv-ph" id="tlvPh"></div>
             <label class="tlv-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <input type="search" id="tlvQ" placeholder="Find a level…" autocomplete="off" spellcheck="false"></label>
-            <div class="tlv-list" id="tlvList" aria-live="polite"></div>
+              <input type="search" id="tlvQ" placeholder="Find a level in any group…" autocomplete="off" spellcheck="false"></label>
+            <div class="tlv-tiles" id="tlvTiles" aria-live="polite"></div>
           </div>
-          <p class="tlv-msg" id="tlvMsg"></p>
         </div>
+        <p class="tlv-msg" id="tlvMsg"></p>
         <div class="modal-footer tlv-foot">
           <span class="tlv-sum" id="tlvSum">Selected: 0 levels</span>
-          <button class="btn-secondary tlv-clear" id="tlvClear" type="button"><i class="fa-regular fa-circle-xmark" aria-hidden="true"></i> Clear</button>
           <button class="btn-secondary" id="tlvCancel" type="button">Cancel</button>
           <button class="btn-primary tlv-apply" id="tlvApply" type="button"><i class="fa-solid fa-check" aria-hidden="true"></i> Apply</button>
         </div>
@@ -191,77 +199,108 @@
     $('#tlvClose', wrap).addEventListener('click', close);
     $('#tlvCancel', wrap).addEventListener('click', close);
     wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !wrap.hidden) close(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || wrap.hidden) return;
+      if (st.q) { st.q = ''; $('#tlvQ', wrap).value = ''; render(); }   // first Escape clears a search, the second closes
+      else close();
+    });
 
     $('#tlvQ', wrap).addEventListener('input', (e) => { st.q = lower(e.target.value); render(); });
-    $('#tlvAll', wrap).addEventListener('change', (e) => {
-      const names = visibleNames();
-      if (e.target.checked) names.forEach(n => st.sel.add(n)); else names.forEach(n => st.sel.delete(n));
-      render();
-    });
-    $('#tlvClear', wrap).addEventListener('click', () => { st.sel.clear(); render(); });
     $('#tlvApply', wrap).addEventListener('click', save);
 
-    const list = $('#tlvList', wrap);
-    list.addEventListener('change', (e) => {
-      const t = e.target;
-      if (t.classList.contains('tlv-gc')) {                           // the group checkbox takes the whole group (what the search shows of it)
-        const names = groupNames(t.dataset.g, true);
-        if (t.checked) names.forEach(n => st.sel.add(n)); else names.forEach(n => st.sel.delete(n));
-        if (t.checked) st.open.add(t.dataset.g);
-        render();
-      } else if (t.classList.contains('tlv-sc')) {
-        if (t.checked) st.sel.add(t.dataset.l); else st.sel.delete(t.dataset.l);
-        render();
-      }
+    // the chips strip: × on a chip, Select all, Clear all
+    $('#tlvChips', wrap).addEventListener('click', (e) => {
+      const x = e.target.closest('[data-x]'); if (x) { st.sel.delete(x.dataset.x); render(); return; }
+      const a = e.target.closest('[data-act]'); if (!a) return;
+      if (a.dataset.act === 'all') st.levels.forEach(l => st.sel.add(l.name));
+      if (a.dataset.act === 'none') st.sel.clear();
+      render();
     });
-    list.addEventListener('click', (e) => {
-      const btn = e.target.closest('.tlv-chev, .tlv-gn'); if (!btn) return;
-      e.preventDefault();
-      const g = btn.dataset.g;
-      if (st.open.has(g)) st.open.delete(g); else st.open.add(g);
+    // the rail: the checkbox takes or drops the WHOLE group; the row shows the group
+    const rail = $('#tlvRail', wrap);
+    rail.addEventListener('change', (e) => {
+      const cb = e.target.closest('.tlv-gc'); if (!cb) return;
+      const names = groupNames(cb.dataset.g);
+      if (cb.checked) names.forEach(n => st.sel.add(n)); else names.forEach(n => st.sel.delete(n));
+      st.cur = cb.dataset.g; st.q = ''; $('#tlvQ', wrap).value = '';
+      render();
+    });
+    rail.addEventListener('click', (e) => {
+      if (e.target.closest('.tlv-gc')) return;                         // the checkbox has its own handler
+      const row = e.target.closest('.tlv-g'); if (!row) return;
+      st.cur = row.dataset.g; st.q = ''; $('#tlvQ', wrap).value = '';
+      render();
+    });
+    rail.addEventListener('keydown', (e) => {
+      const row = e.target.closest ? e.target.closest('.tlv-g') : null; if (!row || e.target.closest('.tlv-gc')) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); st.cur = row.dataset.g; st.q = ''; $('#tlvQ', wrap).value = ''; render(); }
+    });
+    // the panel: a tile ticks one level; the link takes or drops the whole group on screen
+    $('#tlvPh', wrap).addEventListener('click', (e) => {
+      const a = e.target.closest('[data-grp]'); if (!a) return;
+      const names = groupNames(a.dataset.grp);
+      const all = names.length && names.every(n => st.sel.has(n));
+      if (all) names.forEach(n => st.sel.delete(n)); else names.forEach(n => st.sel.add(n));
+      render();
+    });
+    $('#tlvTiles', wrap).addEventListener('change', (e) => {
+      const cb = e.target.closest('.tlv-sc'); if (!cb) return;
+      if (cb.checked) st.sel.add(cb.dataset.l); else st.sel.delete(cb.dataset.l);
       render();
     });
     return wrap;
   }
-  function groupNames(key, visibleOnly) {
-    const g = st.groups.find(x => x.key === key); if (!g) return [];
-    return visibleOnly && st.q ? g.levels.filter(n => lower(n).includes(st.q)) : g.levels.slice();
-  }
-  function visibleNames() {                                           // every level the list shows right now
-    return st.groups.flatMap(g => st.q ? g.levels.filter(n => lower(n).includes(st.q)) : g.levels);
-  }
+  function groupNames(key) { const g = st.groups.find(x => x.key === key); return g ? g.levels.slice() : []; }
+  function picked(names) { return names.filter(n => st.sel.has(n)).length; }
+
   function render() {
     const wrap = st.modal; if (!wrap) return;
-    const list = $('#tlvList', wrap);
-    const keep = list.scrollTop;
-    const stud = new Map(st.levels.map(l => [l.name, l.students]));
-    const rows = [];
-    for (const g of st.groups) {
-      const names = st.q ? g.levels.filter(n => lower(n).includes(st.q)) : g.levels;
-      if (!names.length) continue;
-      const picked = names.filter(n => st.sel.has(n)).length;
-      const all = picked === names.length, some = picked > 0 && !all;
-      const open = st.open.has(g.key) || !!st.q;                      // a search unfolds every group it matches
-      const col = COLOR[g.key] || COLOR.OTHERS;
-      rows.push(`<div class="tlv-g${open ? ' open' : ''}${all ? ' all' : some ? ' some' : ''}" style="--g:${col}" data-g="${esc(g.key)}">`
-        + `<div class="tlv-gr">`
-        + `<input type="checkbox" class="tlv-gc" data-g="${esc(g.key)}" aria-label="All of ${esc(g.label)}"${all ? ' checked' : ''}${some ? ' data-some="1"' : ''}>`
-        + `<span class="tlv-dot" aria-hidden="true"></span>`
-        + `<button type="button" class="tlv-gn" data-g="${esc(g.key)}">${esc(g.label)}</button>`
-        + `<span class="tlv-cnt" title="${picked ? `${picked} of ${names.length} chosen` : `${names.length} level${names.length === 1 ? '' : 's'}`}">${picked ? `<b>${picked}</b>/` : ''}${names.length}</span>`
-        + `<button type="button" class="tlv-chev" data-g="${esc(g.key)}" aria-expanded="${open}" aria-label="${open ? 'Fold' : 'Unfold'} ${esc(g.label)}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>`
-        + `</div>`
-        + `<div class="tlv-sub"${open ? '' : ' hidden'}>`
-        + names.map(n => `<label class="tlv-sr${st.sel.has(n) ? ' on' : ''}"><input type="checkbox" class="tlv-sc" data-l="${esc(n)}"${st.sel.has(n) ? ' checked' : ''}>`
-          + `<span class="tlv-sn">${hi(n)}</span>${stud.has(n) ? `<small>${stud.get(n) ? `${stud.get(n)} student${stud.get(n) === 1 ? '' : 's'}` : 'no students'}</small>` : ''}</label>`).join('')
-        + `</div></div>`);
+    if (!st.groups.some(g => g.key === st.cur)) st.cur = st.groups.length ? st.groups[0].key : '';
+    renderChips(); renderRail(); renderPanel(); sum();
+  }
+  function renderChips() {
+    const el = $('#tlvChips', st.modal);
+    const chosen = st.levels.filter(l => st.sel.has(l.name));         // in the server's order: group by group
+    const chips = chosen.map(l => `<span class="tlv-chip" style="--g:${colorOf(l.group)}">${esc(l.name)}<button type="button" data-x="${esc(l.name)}" aria-label="Drop ${esc(l.name)}">×</button></span>`).join('');
+    el.innerHTML = `<span class="tlv-chips-n">${chosen.length ? `Chosen · ${chosen.length}` : 'Nothing chosen yet'}</span>`
+      + (chips || '<span class="tlv-chips-hint">Tick a whole group on the left, or single levels on the right.</span>')
+      + `<span class="tlv-chips-acts"><button type="button" data-act="all"${st.sel.size === st.levels.length && st.levels.length ? ' disabled' : ''}>Select all</button>`
+      + `<button type="button" data-act="none" class="tlv-danger"${st.sel.size ? '' : ' disabled'}>Clear all</button></span>`;
+  }
+  function renderRail() {
+    const el = $('#tlvRail', st.modal);
+    el.innerHTML = st.groups.map(g => {
+      const p = picked(g.levels), all = p === g.levels.length, some = p > 0 && !all, on = g.key === st.cur && !st.q;
+      return `<div class="tlv-g${on ? ' on' : ''}${p ? ' has' : ''}" style="--g:${colorOf(g.key)}" data-g="${esc(g.key)}" role="option" aria-selected="${on}" tabindex="0">`
+        + `<input type="checkbox" class="tlv-gc" data-g="${esc(g.key)}" aria-label="All of ${esc(g.label)}"${all ? ' checked' : ''}${some ? ' data-some="1"' : ''} title="${all ? 'Drop' : 'Take'} the whole ${esc(g.label)} group">`
+        + `<span class="tlv-dot" aria-hidden="true"></span><span class="tlv-gn">${esc(g.label)}</span>`
+        + `<span class="tlv-cnt">${p ? `<b>${p}</b>/` : ''}${g.levels.length}</span>`
+        + `<i class="fa-solid fa-chevron-right tlv-chev" aria-hidden="true"></i></div>`;
+    }).join('') || '<div class="tlv-empty">No levels found.</div>';
+    el.querySelectorAll('.tlv-gc[data-some]').forEach(cb => { cb.indeterminate = true; });
+  }
+  function tile(name, groupKey, withGroup) {
+    const on = st.sel.has(name), n = students(name), g = groupOfName(name);
+    return `<label class="tlv-t${on ? ' on' : ''}" style="--g:${colorOf(groupKey)}"><input type="checkbox" class="tlv-sc" data-l="${esc(name)}"${on ? ' checked' : ''}>`
+      + `<span class="tlv-tn">${hi(name)}${withGroup ? `<small class="tlv-tg" style="--g:${colorOf(g.key)}">${esc(g.label)}</small>` : ''}</span>`
+      + `<small class="tlv-ts">${esc(studentsText(n))}</small></label>`;
+  }
+  function renderPanel() {
+    const ph = $('#tlvPh', st.modal), tiles = $('#tlvTiles', st.modal);
+    const keep = tiles.scrollTop;
+    if (st.q) {                                                       // search mode: every matching level, any group
+      const hits = st.levels.filter(l => lower(l.name).includes(st.q));
+      ph.innerHTML = `<span class="tlv-pt">Search</span><span class="tlv-pc">${hits.length} match${hits.length === 1 ? '' : 'es'} in ${new Set(hits.map(h => h.group)).size} group${new Set(hits.map(h => h.group)).size === 1 ? '' : 's'}</span>`;
+      tiles.innerHTML = hits.length ? hits.map(l => tile(l.name, l.group, true)).join('') : '<div class="tlv-empty">No level matches that.</div>';
+    } else {
+      const g = st.groups.find(x => x.key === st.cur);
+      if (!g) { ph.innerHTML = ''; tiles.innerHTML = `<div class="tlv-empty">${st.levels.length ? '' : 'No levels found. A level appears here once a student has it or a teacher holds it.'}</div>`; return; }
+      const p = picked(g.levels), all = p === g.levels.length;
+      ph.innerHTML = `<span class="tlv-pt" style="--g:${colorOf(g.key)}">${esc(g.label)}</span><span class="tlv-pc">${p ? `${p} of ${g.levels.length} chosen` : `${g.levels.length} level${g.levels.length === 1 ? '' : 's'}`}</span>`
+        + `<button type="button" class="tlv-grp" data-grp="${esc(g.key)}">${all ? 'Drop the whole group' : 'Take the whole group'}</button>`;
+      tiles.innerHTML = g.levels.map(n => tile(n, g.key, false)).join('');
     }
-    list.innerHTML = rows.length ? rows.join('')
-      : `<div class="tlv-empty">${st.levels.length ? 'No level matches that.' : 'No levels found. A level appears here once a student has it or a teacher holds it.'}</div>`;
-    list.querySelectorAll('.tlv-gc[data-some]').forEach(cb => { cb.indeterminate = true; });
-    list.scrollTop = keep;
-    sum();
+    tiles.scrollTop = keep;
   }
   function hi(name) {                                                 // the matching part of a name, in bold
     if (!st.q) return esc(name);
@@ -270,13 +309,8 @@
   }
   function sum() {
     const wrap = st.modal, n = st.sel.size;
-    $('#tlvCount', wrap).textContent = n;
-    $('#tlvSum', wrap).textContent = `Selected: ${n} level${n === 1 ? '' : 's'}`;
-    const vis = visibleNames(), picked = vis.filter(x => st.sel.has(x)).length;
-    const all = $('#tlvAll', wrap);
-    all.checked = vis.length > 0 && picked === vis.length;
-    all.indeterminate = picked > 0 && picked < vis.length;
-    all.disabled = !vis.length;
+    const gs = new Set(st.levels.filter(l => st.sel.has(l.name)).map(l => l.group)).size;
+    $('#tlvSum', wrap).textContent = `Selected: ${n} level${n === 1 ? '' : 's'}${n ? ` in ${gs} group${gs === 1 ? '' : 's'}` : ''}`;
     const stored = new Set(st.editing ? (st.byEmail.get(st.editing.email) || []) : []);
     $('#tlvApply', wrap).classList.toggle('tlv-same', sameSet(st.sel, stored));
   }
@@ -284,7 +318,8 @@
     const wrap = buildModal();
     st.editing = { email, name, initials, acc };
     st.sel = new Set(st.byEmail.get(email) || []);
-    st.open = new Set(st.groups.filter(g => g.levels.some(n => st.sel.has(n))).map(g => g.key));   // what is chosen starts unfolded
+    const first = st.groups.find(g => g.levels.some(n => st.sel.has(n)));          // start on the first group with something chosen
+    st.cur = first ? first.key : (st.groups[0] ? st.groups[0].key : '');
     st.q = ''; $('#tlvQ', wrap).value = '';
     $('#tlvName', wrap).textContent = name || email;
     const av = $('#tlvAv', wrap); av.textContent = initials || '?'; av.style.setProperty('--acc', acc || '#475569');
