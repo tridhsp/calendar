@@ -565,6 +565,7 @@
       const em = b.dataset.em || '';
       closePicker();
       try {
+        if (!(await levelGate(email, em, s, kind, () => openTeacherPicker(anchor, email, i, kind)))) return;   // tansinh level-gate (9 Oct 2026)
         if (kind === 'tt') await api('set-teacher', { schedId: s.id, teacherEmail: em });
         else await api('set-breakout-teacher-cal', { schedId: s.id, breakoutEmail: em });
         // update the row in place (both cur and orig — teacher is saved immediately, it is not part of the dirty diff)
@@ -579,6 +580,102 @@
     document.addEventListener('keydown', escClose);
     function escClose(ev) { if (ev.key === 'Escape') { closePicker(); document.removeEventListener('keydown', escClose); } }
   }
+  // === tansinh level-gate BEGIN (9 Oct 2026) ===
+  // Before a TT teacher is put on a student: is the student's level one the teacher may teach?
+  // Asks the existing route check-level-assignment (level_assignments, the table the Levels badge on
+  // teachercalendar.html writes). Cannot tell -> do not block. Not allowed -> the popup below.
+  const LEVEL_GATE = { TT: true, BR: false };            // which picks are checked; the old page checked TT only
+  async function levelGate(email, em, s, kind, reopen) {
+    if (!em) return true;                                 // un-assign: nothing to check
+    if (!(kind === 'tt' ? LEVEL_GATE.TT : LEVEL_GATE.BR)) return true;
+    let check = null;
+    try { check = await api('check-level-assignment', { teacherEmail: em, studentEmail: email }); }
+    catch (e) { console.warn('[level-gate] could not check the level, assigning anyway:', e.message || e); return true; }
+    if (!check || check.allowed !== false) return true;
+    return levelGatePopup(email, em, s, kind, String(check.studentLevel || ''), Array.isArray(check.allowedLevels) ? check.allowedLevels : [], reopen);
+  }
+  function levelGateCss() {
+    if (document.getElementById('cbLgCss')) return;
+    const st = document.createElement('style'); st.id = 'cbLgCss';
+    st.textContent = `
+      .cb-lg-ov { position: fixed; inset: 0; z-index: 1400; background: rgba(2,8,23,.45); display: grid; place-items: center; padding: 20px; }
+      .cb-lg { width: min(560px, 96vw); background: #fff; border-radius: 16px; box-shadow: 0 30px 80px rgba(16,24,40,.28); padding: 20px 22px 18px; font-size: 14px; color: #0f172a; }
+      .cb-lg-h { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 17px; font-weight: 800; }
+      .cb-lg-h i { color: #b45309; font-size: 20px; }
+      .cb-lg p { margin: 0 0 10px; line-height: 1.5; color: #334155; }
+      .cb-lg .lv { display: inline-block; padding: 1px 9px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+      .cb-lg .lv.bad { background: #fee2e2; color: #991b1b; }
+      .cb-lg-lab { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .4px; margin: 12px 0 6px; }
+      .cb-lg-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+      .cb-lg-chips span { padding: 2px 9px; border-radius: 999px; background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 600; }
+      .cb-lg-chips .none { background: transparent; color: #94a3b8; font-weight: 500; padding-left: 0; }
+      .cb-lg-note { margin: 12px 0 0; font-size: 12px; color: #64748b; }
+      .cb-lg-note a { color: #2563eb; font-weight: 600; }
+      .cb-lg-msg { min-height: 1.2em; margin: 8px 0 0; font-size: 12.5px; color: #b42318; }
+      .cb-lg-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+      .cb-lg-acts button { font: inherit; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 9px 14px; cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc; color: #0f172a; }
+      .cb-lg-acts button.pri { background: #0f172a; border-color: #0f172a; color: #fff; }
+      .cb-lg-acts button.link { margin-left: auto; border: 0; background: none; color: #b42318; padding: 9px 6px; }
+      .cb-lg-acts button:disabled { opacity: .55; cursor: default; }
+      @media (max-width: 560px) { .cb-lg-acts button.link { margin-left: 0; } }`;
+    document.head.appendChild(st);
+  }
+  // the popup. Resolves true = go on and assign, false = stop (and reopen the picker)
+  function levelGatePopup(email, em, s, kind, level, allowed, reopen) {
+    levelGateCss();
+    document.getElementById('cbLgOv')?.remove();
+    const stName = studentOf(email).displayName || email, tName = teacherLabel(em);
+    const chips = allowed.length ? allowed.map(l => `<span>${esc(l)}</span>`).join('') : '<span class="none">chưa có cấp lớp nào</span>';
+    const ov = document.createElement('div'); ov.className = 'cb-lg-ov'; ov.id = 'cbLgOv';
+    ov.innerHTML = `<div class="cb-lg" role="dialog" aria-modal="true" aria-labelledby="cbLgTitle">
+      <h3 class="cb-lg-h" id="cbLgTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cấp lớp chưa khớp</h3>
+      <p>Học viên <b>${esc(stName)}</b> đang ở cấp <span class="lv bad">${esc(level || '?')}</span>, nhưng <b>${esc(tName)}</b> ${allowed.length ? 'chưa được gán cấp này' : 'chưa được gán cấp lớp nào'}.
+        Buổi ${esc(DAY_LABEL[s.day] || '')} ${esc(s.time || '')} · ${kind.toUpperCase()}.</p>
+      <div class="cb-lg-lab">Cấp lớp ${esc(tName)} được dạy (${allowed.length})</div>
+      <div class="cb-lg-chips">${chips}</div>
+      <p class="cb-lg-note">Cấp lớp của GV được quản lý ở <a href="./teachercalendar.html" target="_blank" rel="noopener">Teacher Calendars › Levels</a>.</p>
+      <p class="cb-lg-msg" id="cbLgMsg"></p>
+      <div class="cb-lg-acts">
+        <button type="button" class="pri" data-a="other">Chọn GV khác</button>
+        ${level ? `<button type="button" data-a="add">Thêm cấp ${esc(level)} cho GV rồi gán</button>` : ''}
+        <button type="button" class="link" data-a="anyway">Vẫn gán ${esc(tName)}</button>
+      </div></div>`;
+    document.body.appendChild(ov);
+    return new Promise(resolve => {
+      const done = (ok) => { ov.remove(); document.removeEventListener('keydown', onKey); resolve(ok); if (!ok && typeof reopen === 'function') setTimeout(reopen, 0); };
+      const onKey = (ev) => { if (ev.key === 'Escape') done(false); };
+      document.addEventListener('keydown', onKey);
+      ov.addEventListener('click', async ev => {
+        if (ev.target === ov) { done(false); return; }
+        const b = ev.target.closest('button[data-a]'); if (!b) return;
+        if (b.dataset.a === 'other') { done(false); return; }
+        if (b.dataset.a === 'anyway') { console.info(`[level-gate] assigned anyway: ${em} for ${email} (${level})`); done(true); return; }
+        const msg = ov.querySelector('#cbLgMsg'); b.disabled = true; msg.textContent = '';
+        try {
+          await levelGateAdd(em, level);
+          tsToast(`Đã thêm cấp ${level} cho ${tName}.`, 'ok');
+          done(true);
+        } catch (e) { msg.textContent = e.message || 'Không thêm được.'; b.disabled = false; }
+      });
+      setTimeout(() => ov.querySelector('button.pri')?.focus(), 30);
+    });
+  }
+  // add ONE level to a teacher's set, through the Levels routes (Admin / Super Admin only; the server decides).
+  // Reads the current set first, so the save never drops a level the teacher already has.
+  async function levelGateAdd(em, level) {
+    const { data } = await client.auth.getSession();
+    const t = data && data.session ? data.session.access_token : '';
+    if (!t) throw new Error('Hãy đăng nhập lại.');
+    const h = { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' };
+    const r1 = await fetch('/api/cal-teacher-levels-list', { headers: h });
+    const j1 = await r1.json().catch(() => ({}));
+    if (!r1.ok) throw new Error(j1.error || ('HTTP ' + r1.status));
+    const have = (j1.assignments || {})[String(em).toLowerCase()] || [];
+    const r2 = await fetch('/api/cal-teacher-levels-save', { method: 'POST', headers: h, body: JSON.stringify({ teacherEmail: em, levels: [...new Set([...have, level])] }) });
+    const j2 = await r2.json().catch(() => ({}));
+    if (!r2.ok) throw new Error(j2.error || ('HTTP ' + r2.status));
+  }
+  // === tansinh level-gate END ===
   function closePicker() { $('cbPop')?.remove(); }
 
   // A 24-hour picker: hour grid + five-minute chips. Writes HH:MM into the text
